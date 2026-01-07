@@ -55,9 +55,9 @@ const Filter = (props: {
     // Get platform counts for filtered products
     const categorized = getCategorizedProducts(filteredProducts, props.favouriteIds);
     return {
-      mobile: categorized.filter(p => p.platform === "mobile").length,
-      pc: categorized.filter(p => p.platform === "pc").length,
-      console: categorized.filter(p => p.platform === "console").length,
+      mobile: categorized.filter((p: any) => p.platform === "mobile").length,
+      pc: categorized.filter((p: any) => p.platform === "pc").length,
+      console: categorized.filter((p: any) => p.platform === "console").length,
     };
   }, [props.products, props.favouriteIds, selectedCategory]);
 

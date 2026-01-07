@@ -164,7 +164,7 @@ const OrderReceipt = (props: { id: string; slug?: string }) => {
 
             {/* Show crypto amount if available, otherwise show fiat amount */}
             {(() => {
-              const cryptoAmount = order.cryptoAmount && order.cryptoAmount !== "[FILTERED]"
+              const cryptoAmount = order.cryptoAmount
                 ? order.cryptoAmount
                 : order.cryptoTransaction?.amount;
               const cryptoCurrency = order.cryptoCurrency && order.cryptoCurrency !== "[FILTERED]"

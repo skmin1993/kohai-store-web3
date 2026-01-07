@@ -65,6 +65,7 @@ export interface MeldWebhookPayload {
 const MELD_API_URLS = {
   sandbox: 'https://api-sandbox.meld.io/v1',
   production: 'https://api.meld.io/v1',
+  demo: 'https://api-sandbox.meld.io/v1', // Demo mode uses sandbox URL
 };
 
 /**

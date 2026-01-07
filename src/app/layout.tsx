@@ -3,9 +3,7 @@
 import SupportFab from "@/components/User/Footer/SupportFab";
 import ReferralCodeHandler from "@/components/ReferralCodeHandler";
 import NotificationHandler from "@/components/NotificationHandler";
-import { AffiliateProvider } from "@/contexts/AffiliateContext";
 import { EmailVerificationProvider } from "@/contexts/EmailVerificationContext";
-import { MerchantProvider } from "@/contexts/MerchantContext";
 import { StoreProvider } from "@/contexts/StoreContext";
 import { UserProvider } from "@/contexts/UserContext";
 import { WalletProvider } from "@/contexts/WalletContext";
@@ -43,18 +41,14 @@ export default function RootLayout({
             <WalletProvider>
               <CurrencyProvider>
                 <EmailVerificationProvider>
-                  <MerchantProvider>
-                    <AffiliateProvider>
-                      <StoreProvider>
-                        <div style={{ backgroundColor: "rgb(0, 0, 0)", color: "#ffffff" }}>
-                          <main>{children}</main>
-                        </div>
-                        <SupportFab />
-                        <ReferralCodeHandler />
-                        <NotificationHandler />
-                      </StoreProvider>
-                    </AffiliateProvider>
-                  </MerchantProvider>
+                  <StoreProvider>
+                    <div style={{ backgroundColor: "rgb(0, 0, 0)", color: "#ffffff" }}>
+                      <main>{children}</main>
+                    </div>
+                    <SupportFab />
+                    <ReferralCodeHandler />
+                    <NotificationHandler />
+                  </StoreProvider>
                 </EmailVerificationProvider>
               </CurrencyProvider>
             </WalletProvider>

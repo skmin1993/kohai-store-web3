@@ -182,8 +182,8 @@ const WalletButton = () => {
 
     if (hasUserData) {
       console.log('📧 User data updated in WalletButton:', {
-        email: currentUserData.currentUser.email,
-        verified: currentUserData.currentUser.emailVerified,
+        email: currentUserData.currentUser?.email,
+        verified: currentUserData.currentUser?.emailVerified,
         address: address,
         loading: userDataLoading,
         isLoadingUserData

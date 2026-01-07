@@ -1,9 +1,8 @@
-import { AnchorProvider, Program, Idl } from "@coral-xyz/anchor";
+import { AnchorProvider, Program } from "@coral-xyz/anchor";
 import {
   Connection,
   PublicKey,
   SystemProgram,
-  SYSVAR_RENT_PUBKEY,
 } from "@solana/web3.js";
 import {
   TOKEN_PROGRAM_ID,
@@ -12,6 +11,7 @@ import {
 } from "@solana/spl-token";
 import BN from "bn.js";
 import idl from "../idl/kohai_staking.json";
+import type { KohaiStaking } from "../idl/kohai_staking";
 import {
   STAKING_PROGRAM_ID,
   KOHAI_TOKEN_MINT,
@@ -23,14 +23,14 @@ import {
 import type { StakingPool, UserStake, StakingStats } from "./types";
 
 export class StakingClient {
-  program: Program;
+  program: Program<KohaiStaking>;
   connection: Connection;
   provider: AnchorProvider;
 
   constructor(provider: AnchorProvider) {
     this.provider = provider;
     this.connection = provider.connection;
-    this.program = new Program(idl as Idl, provider);
+    this.program = new Program(idl as unknown as KohaiStaking, provider);
   }
 
   // Get PDA addresses
@@ -251,7 +251,7 @@ export class StakingClient {
           stakeVault: stakeVaultAddress,
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
-        })
+        } as any)
         .rpc();
     } catch (error: any) {
       console.error("Stake error details:", error);
@@ -297,7 +297,7 @@ export class StakingClient {
         userTokenAccount: userTokenAccount,
         stakeVault: stakeVaultAddress,
         tokenProgram: TOKEN_PROGRAM_ID,
-      })
+      } as any)
       .rpc();
   }
 
@@ -326,7 +326,7 @@ export class StakingClient {
         userTokenAccount: userTokenAccount,
         rewardVault: rewardVaultAddress,
         tokenProgram: TOKEN_PROGRAM_ID,
-      })
+      } as any)
       .rpc();
   }
 }
