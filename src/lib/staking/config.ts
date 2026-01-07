@@ -7,9 +7,10 @@ export const STAKING_PROGRAM_ID = new PublicKey(
 
 // KOHAI Token Mint Address (Update this with your actual KOHAI token mint)
 // For devnet, you'll need to provide the correct mint address
+// Using a dummy valid address for development (Solana System Program as placeholder)
 export const KOHAI_TOKEN_MINT = new PublicKey(
   process.env.NEXT_PUBLIC_KOHAI_TOKEN_MINT ||
-    "KOHAI_MINT_ADDRESS_HERE" // Replace with actual KOHAI token mint
+    "11111111111111111111111111111111" // Placeholder - replace with actual KOHAI token mint
 );
 
 // RPC Configuration
