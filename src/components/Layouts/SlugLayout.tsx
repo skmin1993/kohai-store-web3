@@ -39,6 +39,8 @@ export default function SlugLayout({
 
     const isAllowed =
       hostname === "store.kohai.gg" ||
+      hostname.includes("kohai-store-web3.vercel.app") ||
+      hostname.includes("vercel.app") ||
       (hostname === "localhost" && port === "3002");
 
     if (!isAllowed) {
