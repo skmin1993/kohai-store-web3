@@ -47,6 +47,16 @@ export const SUPPORTED_TOKENS: Record<string, TokenConfig> = {
     },
     coingeckoId: 'usd-coin',
   },
+  KOHAI: {
+    symbol: 'KOHAI',
+    name: 'Kohai Token',
+    decimals: parseInt(process.env.NEXT_PUBLIC_KOHAI_TOKEN_DECIMALS || '6'),
+    mintAddress: {
+      // Read from environment variables for security
+      mainnet: process.env.NEXT_PUBLIC_KOHAI_TOKEN_MINT_MAINNET || '',
+      devnet: process.env.NEXT_PUBLIC_KOHAI_TOKEN_MINT_DEVNET || '',
+    },
+  },
 };
 
 /**

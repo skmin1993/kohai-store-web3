@@ -132,7 +132,9 @@ const UserTierDisplay: React.FC<UserTierDisplayProps> = ({
           <div className={styles.tierInfo}>
             <div className={styles.infoRow}>
               <span className={styles.label}>Balance:</span>
-              <span className={styles.value}>{balance.toLocaleString()} $KOHAI</span>
+              <span className={styles.value}>
+                {balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} $KOHAI
+              </span>
             </div>
             <div className={styles.infoRow}>
               <span className={styles.label}>Discount:</span>
@@ -158,7 +160,9 @@ const UserTierDisplay: React.FC<UserTierDisplayProps> = ({
           )}
           <div className={styles.infoRow}>
             <span className={styles.label}>Your Balance:</span>
-            <span className={styles.value}>{balance.toLocaleString()} $KOHAI</span>
+            <span className={styles.value}>
+              {balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} $KOHAI
+            </span>
           </div>
         </div>
       )}
@@ -176,7 +180,7 @@ const UserTierDisplay: React.FC<UserTierDisplayProps> = ({
             />
           </div>
           <p className={styles.requirement}>
-            {remainingTokens.toLocaleString()} $KOHAI needed
+            {remainingTokens.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} $KOHAI needed
           </p>
         </div>
       )}

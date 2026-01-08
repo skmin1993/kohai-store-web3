@@ -27,6 +27,7 @@ const WalletButton = () => {
   const { openEmailModal } = useEmailVerification();
   const [mounted, setMounted] = useState(false);
   const [balance, setBalance] = useState<number | null>(null);
+  const [kohaiBalance, setKohaiBalance] = useState<number | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [forceRender, setForceRender] = useState(0);
   const [isLoadingUserData, setIsLoadingUserData] = useState(false);
@@ -224,6 +225,25 @@ const WalletButton = () => {
       console.log('⚠️ Not connected or no address');
       setBalance(null);
       setShowDropdown(false); // Close dropdown when disconnected
+    }
+  }, [isConnected, address, getTokenBalance]);
+
+  // Fetch KOHAI balance when connected
+  useEffect(() => {
+    if (isConnected && address) {
+      console.log('🔍 Fetching KOHAI balance for address:', address);
+      getTokenBalance('KOHAI')
+        .then((bal) => {
+          console.log('✅ KOHAI balance fetched:', bal);
+          setKohaiBalance(bal);
+        })
+        .catch((err) => {
+          console.error('❌ Error fetching KOHAI balance:', err);
+          setKohaiBalance(null);
+        });
+    } else {
+      console.log('⚠️ Not connected or no address');
+      setKohaiBalance(null);
     }
   }, [isConnected, address, getTokenBalance]);
 
@@ -532,7 +552,7 @@ const WalletButton = () => {
                     tierName={user.tierName || null}
                     tierStyle={actualStyle}
                     discountPercent={actualDiscount}
-                    kohaiBalance={user.kohaiBalance || 0}
+                    kohaiBalance={kohaiBalance ?? user.kohaiBalance ?? 0}
                   />
                 </div>
               )}
