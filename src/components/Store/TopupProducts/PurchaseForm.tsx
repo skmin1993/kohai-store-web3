@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useCreateOrderMutation, useAuthenticateWalletMutation, useCurrentUserQuery, useCreateGameAccountMutation, useMyGameAccountsQuery, useDeleteGameAccountMutation, useValidateGameAccountMutation, TopupProductItemFragment, useGetActiveVouchersQuery } from "graphql/generated/graphql";
 import { useWallet } from "@/contexts/WalletContext";
 import { useCurrency } from "@/components/Store/CurrencySelector";
-import { useAppKit } from '@reown/appkit/react';
 import dynamic from "next/dynamic";
 
 const EmailVerificationModal = dynamic(() => import("@/components/Store/EmailVerification/EmailVerificationModal"), {
@@ -24,8 +23,7 @@ const PurchaseForm = ({ productItem, userInput }: PurchaseFormProps) => {
   const [validateGameAccount] = useValidateGameAccountMutation();
   const { isConnected, address, sendTransaction, connect, getBalance } = useWallet();
   const { selectedCurrency, convertPrice, formatPrice } = useCurrency();
-  const appKit = useAppKit();
-  
+
   const { data: currentUserData, refetch: refetchUser } = useCurrentUserQuery({
     skip: !isConnected,
     fetchPolicy: 'cache-and-network', // Use cache first, but fetch fresh data
@@ -71,6 +69,16 @@ const PurchaseForm = ({ productItem, userInput }: PurchaseFormProps) => {
   const confirmResolveRef = useRef<((value: boolean) => void) | null>(null);
   const [usdtBalance, setUsdtBalance] = useState<number | null>(null);
   const [loadingUsdtBalance, setLoadingUsdtBalance] = useState(false);
+
+  // FPX/Meld confirmation modal states
+  const [showFPXConfirmModal, setShowFPXConfirmModal] = useState(false);
+  const [fpxConfirmData, setFpxConfirmData] = useState<{
+    topupAmountUsd: number;
+    topupAmountMyr: number;
+    productPrice: number;
+    remainingBalance: number;
+    meldUrl: string;
+  } | null>(null);
 
   // Check if user is authenticated (has JWT token)
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -911,8 +919,7 @@ const PurchaseForm = ({ productItem, userInput }: PurchaseFormProps) => {
       if (!merchantAddress || merchantAddress === 'YOUR_WALLET_ADDRESS_HERE' || merchantAddress === '') {
         setFormErrors([
           'Merchant wallet not configured.',
-          'Please add NEXT_PUBLIC_MERCHANT_WALLET to .env.local',
-          'For testing, you can use the "Simulate Payment" button instead.'
+          'Please add NEXT_PUBLIC_MERCHANT_WALLET to .env.local'
         ]);
         setProcessingPayment(false);
         return;
@@ -1255,194 +1262,6 @@ const PurchaseForm = ({ productItem, userInput }: PurchaseFormProps) => {
     }
   }, [isConnected, address, connect, userInputFields, userData, productPriceUsd, sendTransaction, authenticateWallet, createOrder, currentUserData, productItem, createGameAccount, validateGameAccount, refetchGameAccounts, showConfirmation]);
 
-  // Optimize simulateWalletPayment with useCallback
-  const simulateWalletPayment = useCallback(async () => {
-    if (!isConnected || !address) {
-      setFormErrors(["Please connect your wallet first"]);
-      return;
-    }
-
-    setProcessingPayment(true);
-    setFormErrors([]);
-
-    try {
-      // Validate payment amount first
-      const finalPaymentAmount = hasDiscount ? discountedPriceUsd : productPriceUsd;
-      if (finalPaymentAmount <= 0) {
-        setFormErrors([
-          'Invalid price: Product price is $' + finalPaymentAmount.toFixed(2),
-          'This product may not have a valid price set.',
-          'Please contact support or try a different product.'
-        ]);
-        setProcessingPayment(false);
-        return;
-      }
-
-      console.log('💰 Simulated Payment Debug:', {
-        productItemPrice: productItem.price,
-        productPriceUsd: productPriceUsd,
-        productItem: productItem
-      });
-
-      // Check email verification
-      const user = currentUserData?.currentUser;
-      if (!user?.email) {
-        setFormErrors(['Please add your email address before making a payment.']);
-        setProcessingPayment(false);
-        setShowEmailModal(true);
-        return;
-      }
-
-      if (!user?.emailVerified) {
-        setFormErrors(['Please verify your email before making a payment.']);
-        setProcessingPayment(false);
-        setShowEmailModal(true);
-        return;
-      }
-
-      // Validate user input fields
-      const missingFields = userInputFields
-        .filter((field: any) => field.required && !userData[field.name]?.trim())
-        .map((field: any) => field.label || field.name);
-
-      if (missingFields.length > 0) {
-        setFormErrors([`Please fill in required fields: ${missingFields.join(", ")}`]);
-        setProcessingPayment(false);
-        return;
-      }
-
-      // Check USDT balance (educational - simulated payment doesn't actually transfer)
-      console.log('💰 Checking USDT balance (simulated payment)...');
-      console.log('Current balance:', usdtBalance, 'USDT');
-      console.log('Required amount:', productPriceUsd, 'USDT');
-
-      if (usdtBalance !== null && usdtBalance < productPriceUsd) {
-        const network = process.env.NEXT_PUBLIC_SOLANA_RPC?.includes('devnet') ? 'devnet' : 'mainnet';
-        setFormErrors([
-          `⚠️ Insufficient USDT balance (Simulation Mode)`,
-          `You have: ${usdtBalance.toFixed(2)} USDT`,
-          `Required: ${productPriceUsd.toFixed(2)} USDT`,
-          `Shortfall: ${(productPriceUsd - usdtBalance).toFixed(2)} USDT`,
-          '',
-          '📝 This is a simulated payment for testing, but you would need more USDT for a real transaction.',
-          '',
-          network === 'devnet'
-            ? '💡 Get devnet USDT from: https://faucet.solana.com'
-            : '💡 Purchase USDT on an exchange and transfer to your wallet',
-          '',
-          'Click "Simulate Payment" again to proceed anyway (demo mode).'
-        ]);
-        setProcessingPayment(false);
-        return;
-      }
-
-      // Proceed directly to demo payment (no mandatory verification)
-
-      // Demo mode for testing without real blockchain
-      const mockSignature = `sim_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-      console.log('Simulated transaction:', mockSignature);
-
-      // Authenticate wallet
-      console.log("Authenticating wallet before creating order:", address);
-      const authResult = await authenticateWallet({
-        variables: {
-          walletAddress: address,
-        },
-      });
-
-      if (authResult.data?.authenticateWallet?.errors && authResult.data.authenticateWallet.errors.length > 0) {
-        setFormErrors(["Authentication failed: " + authResult.data.authenticateWallet.errors.join(", ")]);
-        setProcessingPayment(false);
-        return;
-      }
-
-      if (!authResult.data?.authenticateWallet?.token) {
-        setFormErrors(["Authentication failed: No token received"]);
-        setProcessingPayment(false);
-        return;
-      }
-
-      // Store JWT token
-      const token = authResult.data.authenticateWallet.token;
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem('jwtToken', token);
-        console.log("JWT token stored successfully");
-      }
-
-      // Create order with simulated signature (finalPaymentAmount already declared at top)
-      console.log("Simulated payment token: USDT");
-      console.log("Simulated payment amount:", finalPaymentAmount);
-      console.log("🔍 BACKEND REQUEST DEBUG (SIMULATED):", {
-        topupProductItemId: productItem.id,
-        transactionSignature: mockSignature,
-        userData: userData,
-        cryptoCurrency: 'USDT',
-        cryptoAmount: finalPaymentAmount,
-        cryptoAmountType: typeof finalPaymentAmount,
-        originalProductPrice: productItem.price,
-        originalProductCurrency: productItem.currency,
-        convertedToUSD: productPriceUsd,
-        discountPercent: userDiscountPercent,
-        discountedPrice: discountedPriceUsd
-      });
-      const result = await createOrder({
-        variables: {
-          topupProductItemId: productItem.id,
-          transactionSignature: mockSignature,
-          userData: Object.keys(userData).length > 0 ? userData : undefined,
-          cryptoCurrency: 'USDT',
-          cryptoAmount: finalPaymentAmount,
-        },
-      });
-
-      if (result.data?.createOrder?.errors && result.data.createOrder.errors.length > 0) {
-        console.error('❌ Backend validation errors (simulated):', result.data.createOrder.errors);
-        console.log('📦 Product item sent:', {
-          id: productItem.id,
-          price: productItem.price,
-          displayName: productItem.displayName
-        });
-        setFormErrors([
-          'Backend Error (Simulated Payment):',
-          ...result.data.createOrder.errors,
-          '',
-          'Debug info:',
-          `Product ID: ${productItem.id}`,
-          `Product Price: $${productItem.price}`,
-          `Payment Amount: ${finalPaymentAmount} USDT`
-        ]);
-        setProcessingPayment(false);
-      } else if (result.data?.createOrder?.order) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Order created successfully (simulated):', result.data.createOrder.order);
-        }
-        setOrderResult(result.data.createOrder.order);
-        setProcessingPayment(false);
-        // Reset form and validation
-        setUserData({});
-        setValidationStatus('idle');
-        setValidationMessage('');
-      }
-    } catch (err: any) {
-      console.error('Simulation error:', err);
-      console.error('Simulation error type:', typeof err);
-      console.error('Simulation error keys:', Object.keys(err));
-
-      // Handle empty error objects or missing error messages
-      let errorMessage = 'Failed to create simulated order';
-      if (err?.message) {
-        errorMessage = err.message;
-      } else if (err?.toString && err.toString() !== '[object Object]') {
-        errorMessage = err.toString();
-      } else if (typeof err === 'string') {
-        errorMessage = err;
-      }
-
-      setFormErrors([errorMessage]);
-      setProcessingPayment(false);
-    }
-  }, [isConnected, address, userInputFields, userData, productPriceUsd, authenticateWallet, createOrder, productItem, currentUserData, createGameAccount, validateGameAccount, refetchGameAccounts, showConfirmation]);
-
   // FPX Payment Handler (Reown On-Ramp Integration)
   const handleFPXPayment = useCallback(async () => {
     if (!isConnected || !address) {
@@ -1457,37 +1276,78 @@ const PurchaseForm = ({ productItem, userInput }: PurchaseFormProps) => {
     try {
       // Calculate the final price (with discount if applicable)
       const finalPrice = hasDiscount ? discountedPriceUsd : productPriceUsd;
+      const MINIMUM_TOPUP_MYR = 51; // Meld minimum is 50.73 MYR, round up to 51
+      const USD_TO_MYR_RATE = 4.5; // Approximate exchange rate (1 USD = 4.5 MYR)
 
-      console.log(`💳 Opening Reown on-ramp for FPX/Card payment`);
+      console.log(`💳 Opening Meld for FPX/Card payment`);
       console.log(`   Product: ${productItem.displayName}`);
       console.log(`   Price: $${finalPrice.toFixed(2)}`);
-      console.log(`   💡 User will buy crypto with FPX/Card and receive it in their wallet`);
-      console.log(`   💡 Connected wallet: ${address}`);
-      console.log(`   💡 Tip: Select USDT (not SOL) in the checkout to receive stablecoin`);
 
-      // Open Reown on-ramp modal
-      // User buys crypto with FPX/Card → Receives to their Solana wallet
-      // They can then use the crypto to complete the purchase
-      appKit.open({
-        view: 'OnRampProviders',
+      // Calculate MYR amount for Meld
+      // Convert USD to MYR and ensure it meets Meld's minimum of 51 MYR
+      let topupAmountMyr = Math.ceil(finalPrice * USD_TO_MYR_RATE);
+      topupAmountMyr = Math.max(topupAmountMyr, MINIMUM_TOPUP_MYR); // Ensure minimum 51 MYR
+
+      const topupAmountUsd = topupAmountMyr / USD_TO_MYR_RATE;
+      const remainingBalanceUsd = topupAmountUsd - finalPrice;
+
+      // Build Meld URL with dynamic amount
+      const meldPublicKey = process.env.NEXT_PUBLIC_MELD_PUBLIC_KEY || 'WXETMuFUQmqqybHuRkSgxv:25B8LJHSfpG6LVjR2ytU5Cwh7Z4Sch2ocoU';
+      const meldCustomerId = process.env.NEXT_PUBLIC_MELD_EXTERNAL_CUSTOMER_ID || '3640df604b8bb5d05ba846326433772c';
+
+      const meldUrl = `https://meldcrypto.com/?` +
+        `publicKey=${encodeURIComponent(meldPublicKey)}` +
+        `&destinationCurrencyCode=SOL` + // Use SOL (Solana network only)
+        `&walletAddress=${address}` +
+        `&externalCustomerId=${meldCustomerId}` +
+        `&sourceAmount=${topupAmountMyr}` +
+        `&sourceCurrencyCode=MYR` +
+        `&countryCode=MY`; // Malaysia country code
+
+      console.log(`   💳 Preparing Meld payment confirmation`);
+      console.log(`   Amount: ${topupAmountMyr} MYR (~$${topupAmountUsd.toFixed(2)} USD)`);
+      console.log(`   💡 User will receive SOL (Solana) to wallet: ${address}`);
+
+      // Show confirmation modal before opening Meld
+      setFpxConfirmData({
+        topupAmountUsd,
+        topupAmountMyr,
+        productPrice: finalPrice,
+        remainingBalance: remainingBalanceUsd,
+        meldUrl
       });
-
-      // Reset processing state after opening modal
+      setShowFPXConfirmModal(true);
       setProcessingPayment(false);
 
-      // Note: After user buys crypto via on-ramp, they need to return
-      // to this page and complete the purchase with their crypto balance
-      console.log(`💡 After buying crypto, return here and complete your purchase`);
-
     } catch (err: any) {
-      console.error("Error opening on-ramp:", err);
+      console.error("Error opening Meld:", err);
       setFormErrors([
-        '❌ Failed to open payment gateway.',
+        '❌ Failed to open Meld payment gateway.',
         'Error: ' + (err.message || 'Unknown error')
       ]);
       setProcessingPayment(false);
     }
-  }, [isConnected, address, productItem, productPriceUsd, discountedPriceUsd, hasDiscount, appKit]);
+  }, [isConnected, address, productItem, productPriceUsd, discountedPriceUsd, hasDiscount]);
+
+  // Handle FPX confirmation - user clicks "Yes"
+  const handleFPXConfirm = useCallback(() => {
+    if (!fpxConfirmData) return;
+
+    // Open Meld in new window
+    window.open(fpxConfirmData.meldUrl, '_blank', 'width=500,height=700,scrollbars=yes');
+
+    // Close modal and clear errors
+    setShowFPXConfirmModal(false);
+    setFpxConfirmData(null);
+    setFormErrors([]); // Clear any existing errors
+  }, [fpxConfirmData]);
+
+  // Handle FPX cancel - user clicks "No"
+  const handleFPXCancel = useCallback(() => {
+    setShowFPXConfirmModal(false);
+    setFpxConfirmData(null);
+    setFormErrors([]);
+  }, []);
 
   if (orderResult) {
     return (
@@ -2293,19 +2153,6 @@ const PurchaseForm = ({ productItem, userInput }: PurchaseFormProps) => {
                   </p>
                 )}
               </div>
-
-              {/* Test/Demo Mode */}
-              <div className="mt-3 border-t border-blue-500/30 pt-3">
-                <p className="mb-2 text-xs text-blue-300">Or for testing:</p>
-                <button
-                  type="button"
-                  onClick={simulateWalletPayment}
-                  disabled={processingPayment}
-                  className="w-full rounded-lg bg-yellow-500/20 px-4 py-2 text-sm font-semibold text-yellow-300 transition hover:bg-yellow-500/30 disabled:opacity-50"
-                >
-                  {processingPayment ? "Processing..." : "🧪 Simulate Payment (Demo Mode)"}
-                </button>
-              </div>
             </>
           )}
         </div>
@@ -2329,6 +2176,114 @@ const PurchaseForm = ({ productItem, userInput }: PurchaseFormProps) => {
           onClose={() => setShowEmailModal(false)}
           mandatory={true} // Force email verification before purchase
         />
+      )}
+
+      {/* FPX/Meld Payment Confirmation Modal */}
+      {showFPXConfirmModal && fpxConfirmData && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              handleFPXCancel();
+            }
+          }}
+        >
+          <div className="w-full max-w-md rounded-lg bg-gradient-to-br from-blue-900 to-blue-800 p-6 shadow-2xl border border-blue-500/30">
+            {/* Header */}
+            <div className="mb-6 flex items-center justify-between">
+              <h3 className="text-2xl font-bold text-white flex items-center gap-2">
+                <svg className="h-7 w-7 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+                Confirm Payment
+              </h3>
+              <button
+                onClick={handleFPXCancel}
+                className="text-gray-400 hover:text-white transition"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="mb-6 space-y-4">
+              <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-300">Product Price:</span>
+                    <span className="text-lg font-bold text-white">${fpxConfirmData.productPrice.toFixed(2)} USD</span>
+                  </div>
+                  <div className="border-t border-white/10 pt-3">
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm text-gray-300">Top-up Amount:</span>
+                      <span className="text-lg font-bold text-blue-300">{fpxConfirmData.topupAmountMyr} MYR</span>
+                    </div>
+                    <div className="text-right text-xs text-gray-400">
+                      (~${fpxConfirmData.topupAmountUsd.toFixed(2)} USD)
+                    </div>
+                  </div>
+
+                  {fpxConfirmData.remainingBalance > 0 && (
+                    <div className="border-t border-white/10 pt-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-300">Remaining Balance:</span>
+                        <span className="text-lg font-semibold text-green-400">${fpxConfirmData.remainingBalance.toFixed(2)} USD</span>
+                      </div>
+                      <p className="mt-2 text-xs text-gray-400 bg-blue-500/10 rounded p-2">
+                        ℹ️ Minimum top-up is 51 MYR. The remaining SOL balance will stay in your wallet after purchase.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-lg bg-blue-500/10 border border-blue-500/30 p-4">
+                <p className="text-sm text-blue-200 mb-2">
+                  <strong>Payment Method:</strong> FPX / Credit Card via Meld
+                </p>
+                <p className="text-sm text-blue-200 mb-2">
+                  <strong>Network:</strong> Solana
+                </p>
+                <p className="text-sm text-blue-200">
+                  <strong>You'll receive:</strong> SOL to your wallet
+                </p>
+              </div>
+
+              <div className="text-sm text-gray-300 space-y-2">
+                <p className="flex items-start gap-2">
+                  <span className="text-blue-400 flex-shrink-0">1.</span>
+                  <span>Complete payment in Meld window</span>
+                </p>
+                <p className="flex items-start gap-2">
+                  <span className="text-blue-400 flex-shrink-0">2.</span>
+                  <span>SOL will be sent to your Solana wallet</span>
+                </p>
+                <p className="flex items-start gap-2">
+                  <span className="text-blue-400 flex-shrink-0">3.</span>
+                  <span>Swap SOL to USDT, then pay with wallet USDT</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                onClick={handleFPXCancel}
+                className="flex-1 rounded-lg bg-gray-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleFPXConfirm}
+                className="flex-1 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 px-4 py-3 text-sm font-semibold text-white transition hover:from-blue-600 hover:to-cyan-600 shadow-lg"
+              >
+                Proceed to Meld
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Account Confirmation Modal */}
