@@ -5,7 +5,7 @@ import SearchDrawer from "@/components/Inputs/SearchDrawer";
 import SearchPremium from "@/components/Inputs/SearchPremium";
 import WalletButton from "@/components/WalletConnect/WalletButton";
 import { HeaderCurrencySelector } from "@/components/Store/CurrencySelector";
-import SwapButton from "@/components/Swap/SwapButton";
+import StakeButton from "@/components/Staking/StakeButton";
 import { useEffect, useState } from "react";
 import { CiSearch } from "react-icons/ci";
 import styles from "./Header.module.css";
@@ -45,7 +45,7 @@ const HeaderPremium = (props: { slug?: string }) => {
             <SearchPremium slug={props.slug} />
             <div className="flex items-center gap-3">
               <HeaderCurrencySelector />
-              <SwapButton className="hidden md:flex items-center gap-2 rounded-lg bg-purple-500/20 border border-purple-500/30 px-3 py-2 text-xs font-semibold text-purple-300 transition hover:bg-purple-500/30" />
+              <StakeButton className="hidden md:flex items-center gap-2 rounded-lg bg-purple-500/20 border border-purple-500/30 px-3 py-2 text-xs font-semibold text-purple-300 transition hover:bg-purple-500/30" />
               <WalletButton />
               <div
                 className={`rounded-md bg-white/10 backdrop-blur-md md:hidden ${styles.drawerBtn}`}

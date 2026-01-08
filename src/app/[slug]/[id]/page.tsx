@@ -1,6 +1,9 @@
 import SlugLayout from "@/components/Layouts/SlugLayout";
 import StoreProduct from "@/components/Store/TopupProducts/StoreProduct";
 
+// Enable dynamic rendering for this route
+export const dynamic = 'force-dynamic';
+
 export default async function GameShow({
   params,
 }: {

@@ -6,7 +6,7 @@ import { useWallet } from "@/contexts/WalletContext";
 import { useAppKit } from '@reown/appkit/react';
 import Loader from "@/components/common/Loader";
 import PaymentMethodModal from "@/components/Topups/PaymentMethodModal";
-import SwapButton from "@/components/Swap/SwapButton";
+import StakeButton from "@/components/Staking/StakeButton";
 import type { Network, CreatePaymentSessionResponse, PaymentMethod } from "@/types/topup";
 
 const TopupForm = () => {
@@ -249,7 +249,7 @@ const TopupForm = () => {
               You'll receive the funds in your connected wallet.
             </p>
           </div>
-          <SwapButton />
+          <StakeButton />
         </div>
       </div>
 

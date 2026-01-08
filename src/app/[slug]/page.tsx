@@ -1,6 +1,9 @@
 import HomeIndex from "@/components/Home";
 import SlugLayout from "@/components/Layouts/SlugLayout";
 
+// Enable dynamic rendering for this route
+export const dynamic = 'force-dynamic';
+
 export default async function StoreShow({
   params,
 }: {
