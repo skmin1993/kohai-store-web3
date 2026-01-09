@@ -545,6 +545,19 @@ const WalletButton = () => {
               </div>
 
               {/* VIP Tier Status */}
+              {(() => {
+                console.log('🎯 VIP Status render check:', {
+                  isLoading,
+                  hasUser: !!user,
+                  tier: user?.tier,
+                  tierName: user?.tierName,
+                  tierStyle: actualStyle,
+                  discountPercent: actualDiscount,
+                  kohaiBalance: kohaiBalance ?? user?.kohaiBalance ?? 0,
+                  backendKohaiBalance: user?.kohaiBalance
+                });
+                return null;
+              })()}
               {!isLoading && user && (
                 <div className="mb-3">
                   <UserTierDisplay

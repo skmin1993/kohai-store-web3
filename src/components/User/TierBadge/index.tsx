@@ -25,11 +25,24 @@ const TierBadge: React.FC<TierBadgeProps> = ({
   discountPercent,
   compact = false
 }) => {
-  if (!tierName || !tierStyle) {
+  // Treat "none" as no tier
+  if (!tierName || tierName.toLowerCase() === 'none') {
     return null; // No tier
   }
 
-  const tierClassName = `${styles.tierBadge} ${styles[tierStyle] || ''}`;
+  // Add console log to debug
+  console.log('🏷️ TierBadge rendering:', { tierName, tierStyle, discountPercent });
+
+  // Fallback to default style based on tier name if tierStyle is missing
+  let effectiveStyle = tierStyle;
+  if (!effectiveStyle && tierName) {
+    const lowerTier = tierName.toLowerCase();
+    if (lowerTier === "elite") effectiveStyle = "silver";
+    else if (lowerTier === "grandmaster") effectiveStyle = "gold";
+    else if (lowerTier === "legend") effectiveStyle = "orange";
+  }
+
+  const tierClassName = `${styles.tierBadge} ${effectiveStyle ? styles[effectiveStyle] : ''}`;
 
   return (
     <span

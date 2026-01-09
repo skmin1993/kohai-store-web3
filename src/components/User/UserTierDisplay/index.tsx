@@ -45,9 +45,12 @@ const UserTierDisplay: React.FC<UserTierDisplayProps> = ({
 }) => {
   const balance = kohaiBalance || 0;
 
+  // Treat "none" as no tier
+  const hasActualTier = tier && tierName && tierName.toLowerCase() !== 'none';
+
   // Get tier info from tier name
   const getTierInfo = (tierName: string | null) => {
-    if (!tierName) return null;
+    if (!tierName || tierName.toLowerCase() === 'none') return null;
     return TIERS.find(t => t.name.toLowerCase() === tierName.toLowerCase());
   };
 
@@ -76,9 +79,9 @@ const UserTierDisplay: React.FC<UserTierDisplayProps> = ({
 
   // Find next tier based on current situation
   let nextTier: TierInfo | undefined;
-  if (tier && tierName) {
+  if (hasActualTier) {
     // User has a tier - find the next one after their current tier
-    const currentTierIndex = TIERS.findIndex(t => t.name.toLowerCase() === tierName.toLowerCase());
+    const currentTierIndex = TIERS.findIndex(t => t.name.toLowerCase() === tierName!.toLowerCase());
     nextTier = currentTierIndex >= 0 && currentTierIndex < TIERS.length - 1
       ? TIERS[currentTierIndex + 1]
       : undefined;
@@ -97,7 +100,7 @@ const UserTierDisplay: React.FC<UserTierDisplayProps> = ({
   if (compact) {
     return (
       <div className={styles.compactDisplay}>
-        {tier ? (
+        {hasActualTier ? (
           <TierBadge
             tierName={tierName}
             tierStyle={actualStyle}
@@ -119,7 +122,7 @@ const UserTierDisplay: React.FC<UserTierDisplayProps> = ({
         <h3 className={styles.title}>VIP Status</h3>
       </div>
 
-      {tier && tierName ? (
+      {hasActualTier ? (
         <div className={styles.currentTier}>
 <div className={styles.infoRow}>
             <span className={styles.currentTierLabel}>Current Tier: </span>
@@ -185,7 +188,7 @@ const UserTierDisplay: React.FC<UserTierDisplayProps> = ({
         </div>
       )}
 
-      {!nextTier && tier === "legend" && (
+      {!nextTier && hasActualTier && tierName?.toLowerCase() === "legend" && (
         <div className={styles.maxTier}>
           <p className={styles.maxTierText}>🎉 Maximum Tier Reached!</p>
         </div>
