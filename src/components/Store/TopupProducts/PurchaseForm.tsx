@@ -1826,7 +1826,7 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
                       <span className="font-medium text-white truncate">
                         {account.inGameName && account.inGameName !== account.accountId
                           ? account.inGameName
-                          : (account.displayName || `Account ${account.accountId.slice(0, 8)}...`)}
+                          : (account.displayName || (account.accountId ? `Account ${account.accountId.slice(0, 8)}...` : 'Saved Account'))}
                       </span>
                       {/* Verification Status */}
                       {account.approve ? (
