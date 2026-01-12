@@ -60,7 +60,7 @@ const TopupProducts = (props: { from?: string; slug?: string }) => {
     variables: {
       categoryId: undefined, // Don't filter by category in backend - we'll do it client-side
       page: page,
-      perPage: 50, // Reduced from 100 for faster initial load
+      perPage: 150, // Increased to ensure all products are loaded (98 active games)
       countryCode: "MY",
       forStore: true,
       search: search,
