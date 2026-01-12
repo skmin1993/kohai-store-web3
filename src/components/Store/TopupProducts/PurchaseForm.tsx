@@ -1822,15 +1822,46 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
                 >
                   {/* Row 1: Account Name and Buttons */}
                   <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-white">
-                        {account.displayName || account.inGameName || 'Saved Account'}
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className="font-medium text-white truncate">
+                        {account.inGameName && account.inGameName !== account.accountId
+                          ? account.inGameName
+                          : (account.displayName || `Account ${account.accountId.slice(0, 8)}...`)}
                       </span>
-                      {account.approve && account.inGameName !== account.accountId && (
-                        <span className="text-xs text-green-400">✓ Verified</span>
+                      {/* Verification Status */}
+                      {account.approve ? (
+                        <span className="text-xs text-green-400 whitespace-nowrap">✓ Verified</span>
+                      ) : (
+                        <span className="text-xs text-orange-400 whitespace-nowrap">⚠ Unverified</span>
                       )}
                     </div>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {/* Show Verify button for unverified accounts */}
+                      {!account.approve && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              console.log('🔍 Verifying account:', account.id);
+                              const result = await validateGameAccount({
+                                variables: {
+                                  gameAccountId: parseInt(account.id)
+                                }
+                              });
+                              if (result.data?.validateGameAccountMutation?.gameAccount) {
+                                console.log('✅ Account verified:', result.data.validateGameAccountMutation.gameAccount);
+                                refetchGameAccounts();
+                              }
+                            } catch (err) {
+                              console.error('❌ Verification error:', err);
+                            }
+                          }}
+                          className="rounded-lg bg-green-500/20 px-2.5 py-1.5 text-xs text-green-300 hover:bg-green-500/30 transition"
+                          title="Verify this account"
+                        >
+                          🔍
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => handleLoadGameAccount(account.id)}
@@ -1864,12 +1895,12 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
                       <>
                         <div className="flex items-center gap-2">
                           <span className="text-blue-300 font-semibold whitespace-nowrap">Game ID:</span>
-                          <span className="font-mono text-white truncate" title={account.accountId}>{account.accountId}</span>
+                          <span className="font-mono text-white truncate" title={account.accountId || undefined}>{account.accountId}</span>
                         </div>
                         {account.serverId && (
                           <div className="flex items-center gap-2">
                             <span className="text-purple-300 font-semibold whitespace-nowrap">Server:</span>
-                            <span className="text-white truncate" title={account.serverId}>{account.serverId}</span>
+                            <span className="text-white truncate" title={account.serverId || undefined}>{account.serverId}</span>
                           </div>
                         )}
                       </>
