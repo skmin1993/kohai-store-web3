@@ -36,6 +36,7 @@ const WalletButton = () => {
   const [showRewardsCategory, setShowRewardsCategory] = useState(false);
   const [showTokenCategory, setShowTokenCategory] = useState(true);
   const [showAccountCategory, setShowAccountCategory] = useState(false);
+  const [isHoveringDropdown, setIsHoveringDropdown] = useState(false);
 
   // Prevent hydration mismatch
   useEffect(() => {
@@ -251,19 +252,22 @@ const WalletButton = () => {
     }
   }, [isConnected, address, getTokenBalance]);
 
-  // Close dropdown when user scrolls
+  // Close dropdown when user scrolls (but not if hovering over dropdown)
   useEffect(() => {
     if (!showDropdown) return;
 
     const handleScroll = () => {
-      setShowDropdown(false);
+      // Don't close if user is hovering over the dropdown
+      if (!isHoveringDropdown) {
+        setShowDropdown(false);
+      }
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
-  }, [showDropdown]);
+  }, [showDropdown, isHoveringDropdown]);
 
   // Shorten address for display (0x1234...5678)
   const shortenAddress = (addr: string) => {
@@ -546,7 +550,11 @@ const WalletButton = () => {
           />
 
           {/* Dropdown content */}
-          <div className="absolute right-0 top-full mt-2 z-50 w-80 rounded-lg bg-gray-900 shadow-xl border border-white/10 overflow-hidden">
+          <div
+            className="absolute right-0 top-full mt-2 z-50 w-80 rounded-lg bg-gray-900 shadow-xl border border-white/10 overflow-hidden"
+            onMouseEnter={() => setIsHoveringDropdown(true)}
+            onMouseLeave={() => setIsHoveringDropdown(false)}
+          >
             {/* Header with Logout */}
             <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-b border-white/10">
               <h2 className="text-sm font-bold text-white">💼 My Wallet</h2>
