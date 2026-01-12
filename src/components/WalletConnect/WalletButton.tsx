@@ -32,6 +32,10 @@ const WalletButton = () => {
   const [forceRender, setForceRender] = useState(0);
   const [isLoadingUserData, setIsLoadingUserData] = useState(false);
   const [showReferralModal, setShowReferralModal] = useState(false);
+  const [showVipStatus, setShowVipStatus] = useState(true);
+  const [showRewardsCategory, setShowRewardsCategory] = useState(false);
+  const [showTokenCategory, setShowTokenCategory] = useState(true);
+  const [showAccountCategory, setShowAccountCategory] = useState(false);
 
   // Prevent hydration mismatch
   useEffect(() => {
@@ -246,6 +250,20 @@ const WalletButton = () => {
       setKohaiBalance(null);
     }
   }, [isConnected, address, getTokenBalance]);
+
+  // Close dropdown when user scrolls
+  useEffect(() => {
+    if (!showDropdown) return;
+
+    const handleScroll = () => {
+      setShowDropdown(false);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [showDropdown]);
 
   // Shorten address for display (0x1234...5678)
   const shortenAddress = (addr: string) => {
@@ -528,23 +546,48 @@ const WalletButton = () => {
           />
 
           {/* Dropdown content */}
-          <div className="absolute right-0 top-full mt-2 z-50 w-80 rounded-lg bg-gray-900 shadow-xl border border-white/10">
-            <div className="p-4">
-              {/* Address */}
-              <div className="mb-3">
-                <p className="text-xs text-gray-400 mb-1">Wallet Address</p>
-                <p className="font-mono text-sm break-all">{address}</p>
+          <div className="absolute right-0 top-full mt-2 z-50 w-80 rounded-lg bg-gray-900 shadow-xl border border-white/10 overflow-hidden">
+            {/* Header with Logout */}
+            <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-b border-white/10">
+              <h2 className="text-sm font-bold text-white">💼 My Wallet</h2>
+              <button
+                onClick={disconnect}
+                className="flex items-center gap-1.5 rounded-lg bg-red-500/20 px-3 py-1.5 text-xs font-semibold text-red-300 transition hover:bg-red-500/30"
+              >
+                🚪 Logout
+              </button>
+            </div>
+
+            <div className="p-4 space-y-3">
+              {/* Quick Info Card - Address & Balance */}
+              <div className="rounded-lg bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20 p-3 space-y-2">
+                {/* Address with Copy */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-blue-300 font-semibold mb-0.5">Wallet Address</p>
+                    <p className="font-mono text-xs text-white/80 truncate" title={address!}>{address}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(address!);
+                    }}
+                    className="flex-shrink-0 rounded-lg bg-blue-500/30 hover:bg-blue-500/40 px-2.5 py-1.5 text-xs font-medium text-blue-200 transition"
+                    title="Copy Address"
+                  >
+                    📋
+                  </button>
+                </div>
+
+                {/* Balance */}
+                <div className="pt-2 border-t border-white/10">
+                  <p className="text-xs text-green-300 font-semibold mb-0.5">USDT Balance</p>
+                  <p className="text-xl font-bold text-white">
+                    {balance !== null ? `${balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT` : 'Loading...'}
+                  </p>
+                </div>
               </div>
 
-              {/* Balance */}
-              <div className="mb-3 rounded-lg bg-white/5 p-3">
-                <p className="text-xs text-gray-400 mb-1">USDT Balance</p>
-                <p className="text-lg font-bold">
-                  {balance !== null ? `${balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} USDT` : 'Loading...'}
-                </p>
-              </div>
-
-              {/* VIP Tier Status */}
+              {/* VIP Tier Status - Collapsible */}
               {(() => {
                 console.log('🎯 VIP Status render check:', {
                   isLoading,
@@ -559,38 +602,57 @@ const WalletButton = () => {
                 return null;
               })()}
               {!isLoading && user && (
-                <div className="mb-3">
-                  <UserTierDisplay
-                    tier={user.tier || null}
-                    tierName={user.tierName || null}
-                    tierStyle={actualStyle}
-                    discountPercent={actualDiscount}
-                    kohaiBalance={kohaiBalance ?? user.kohaiBalance ?? 0}
-                  />
+                <div>
+                  {/* Toggle Button */}
+                  <button
+                    onClick={() => setShowVipStatus(!showVipStatus)}
+                    className="w-full flex items-center justify-between rounded-lg bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 hover:border-yellow-500/30 p-2.5 transition"
+                  >
+                    <span className="text-sm font-bold text-yellow-300">👑 VIP Status</span>
+                    <svg
+                      className={`h-4 w-4 text-yellow-400 transition-transform duration-200 ${showVipStatus ? 'rotate-180' : ''}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  {/* Collapsible Content */}
+                  <div
+                    className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                      showVipStatus ? 'max-h-[500px] opacity-100 mt-2' : 'max-h-0 opacity-0'
+                    }`}
+                  >
+                    <UserTierDisplay
+                      tier={user.tier || null}
+                      tierName={user.tierName || null}
+                      tierStyle={actualStyle}
+                      discountPercent={actualDiscount}
+                      kohaiBalance={kohaiBalance ?? user.kohaiBalance ?? 0}
+                    />
+                  </div>
                 </div>
               )}
 
-              {/* Email Verification Status */}
-              <div className="mb-3">
+              {/* Email Verification Status - Compact */}
+              <div>
                 {isLoading ? (
-                  <div className="flex items-center gap-2 rounded-lg bg-blue-500/10 border border-blue-500/30 p-3">
-                    <svg className="h-5 w-5 text-blue-400 flex-shrink-0 animate-spin" viewBox="0 0 24 24">
+                  <div className="flex items-center gap-2 rounded-lg bg-blue-500/10 border border-blue-500/20 px-3 py-2">
+                    <svg className="h-4 w-4 text-blue-400 flex-shrink-0 animate-spin" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    <div className="flex-1">
-                      <p className="text-xs font-semibold text-blue-400">Loading Email Status...</p>
-                      <p className="text-xs text-blue-300/70">Please wait</p>
-                    </div>
+                    <p className="text-xs font-semibold text-blue-400">Loading email...</p>
                   </div>
                 ) : hasEmail && isEmailVerified ? (
-                  <div className="flex items-center gap-2 rounded-lg bg-green-500/10 border border-green-500/30 p-3">
-                    <svg className="h-5 w-5 text-green-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="flex items-center gap-2 rounded-lg bg-green-500/10 border border-green-500/20 px-3 py-2">
+                    <svg className="h-4 w-4 text-green-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <div className="flex-1">
-                      <p className="text-xs font-semibold text-green-400">Email Verified</p>
-                      <p className="text-xs text-green-300/70 truncate">{user?.email}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-green-300 truncate">✓ {user?.email}</p>
                     </div>
                   </div>
                 ) : hasEmail && !isEmailVerified ? (
@@ -599,15 +661,12 @@ const WalletButton = () => {
                       setShowDropdown(false);
                       openEmailModal();
                     }}
-                    className="w-full flex items-center gap-2 rounded-lg bg-orange-500/10 border border-orange-500/30 p-3 hover:bg-orange-500/20 transition"
+                    className="w-full flex items-center gap-2 rounded-lg bg-orange-500/10 border border-orange-500/20 px-3 py-2 hover:bg-orange-500/20 transition"
                   >
-                    <svg className="h-5 w-5 text-orange-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="h-4 w-4 text-orange-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                     </svg>
-                    <div className="flex-1 text-left">
-                      <p className="text-xs font-semibold text-orange-400">Verify Email</p>
-                      <p className="text-xs text-orange-300/70 truncate">{user?.email}</p>
-                    </div>
+                    <p className="text-xs font-semibold text-orange-300 truncate flex-1 text-left">⚠ Click to verify: {user?.email}</p>
                   </button>
                 ) : (
                   <button
@@ -615,130 +674,152 @@ const WalletButton = () => {
                       setShowDropdown(false);
                       openEmailModal();
                     }}
-                    className="w-full flex items-center gap-2 rounded-lg bg-red-500/10 border border-red-500/30 p-3 hover:bg-red-500/20 transition"
+                    className="w-full flex items-center gap-2 rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2 hover:bg-red-500/20 transition"
                   >
-                    <svg className="h-5 w-5 text-red-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="h-4 w-4 text-red-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                     </svg>
-                    <div className="flex-1 text-left">
-                      <p className="text-xs font-semibold text-red-400">Add Email</p>
-                      <p className="text-xs text-red-300/70">Required for purchases</p>
-                    </div>
+                    <p className="text-xs font-semibold text-red-300 flex-1 text-left">✗ Add Email (Required)</p>
                   </button>
                 )}
               </div>
 
+              {/* Actions - Divider */}
+              <div className="border-t border-white/10 pt-3 mt-3">
+                <h3 className="text-xs font-bold text-gray-400 mb-2 px-1">QUICK ACTIONS</h3>
+              </div>
+
               {/* Actions */}
               <div className="space-y-2">
-                <button
-                  onClick={() => {
-                    setShowDropdown(false);
-                    setShowReferralModal(true);
-                  }}
-                  className="flex items-center justify-center gap-2 w-full rounded-lg bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 px-4 py-2 text-sm font-semibold transition hover:from-purple-500/30 hover:to-blue-500/30"
-                >
-                  <svg
-                    className="h-4 w-4"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
+                {/* 1️⃣ Rewards & Earnings */}
+                <div className="rounded-lg border border-white/10 overflow-hidden">
+                  <button
+                    onClick={() => setShowRewardsCategory(!showRewardsCategory)}
+                    className="w-full flex items-center justify-between px-3 py-2 bg-white/5 hover:bg-white/10 transition"
                   >
-                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
-                  </svg>
-                  💰 Referral Rewards
-                </button>
-                <a
-                  href="/staking"
-                  onClick={() => setShowDropdown(false)}
-                  className="flex items-center justify-center gap-2 w-full rounded-lg bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 px-4 py-2 text-sm font-semibold transition hover:from-purple-500/30 hover:to-pink-500/30"
-                >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+                    <span className="text-xs font-bold text-purple-300">💰 Rewards & Earnings</span>
+                    <svg
+                      className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${showRewardsCategory ? 'rotate-180' : ''}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  <div
+                    className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                      showRewardsCategory ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+                    }`}
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  Stake KOHAI
-                </a>
-                <a
-                  href="/swap"
-                  onClick={() => setShowDropdown(false)}
-                  className="flex items-center justify-center gap-2 w-full rounded-lg bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-500/30 px-4 py-2 text-sm font-semibold transition hover:from-blue-500/30 hover:to-cyan-500/30"
-                >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+                    <div className="p-2 bg-black/20">
+                      <button
+                        onClick={() => {
+                          setShowDropdown(false);
+                          setShowReferralModal(true);
+                        }}
+                        className="flex items-center gap-2 w-full rounded-lg bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 px-3 py-2 text-xs font-semibold transition hover:from-purple-500/30 hover:to-blue-500/30"
+                      >
+                        <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+                        </svg>
+                        Referral Rewards
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2️⃣ Token Management */}
+                <div className="rounded-lg border border-white/10 overflow-hidden">
+                  <button
+                    onClick={() => setShowTokenCategory(!showTokenCategory)}
+                    className="w-full flex items-center justify-between px-3 py-2 bg-white/5 hover:bg-white/10 transition"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-                    />
-                  </svg>
-                  Swap Tokens
-                </a>
-                <a
-                  href="/topups"
-                  className="flex items-center justify-center gap-2 w-full rounded-lg bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 px-4 py-2 text-sm font-semibold transition hover:from-green-500/30 hover:to-emerald-500/30"
-                >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+                    <span className="text-xs font-bold text-green-300">🪙 Token Management</span>
+                    <svg
+                      className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${showTokenCategory ? 'rotate-180' : ''}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  <div
+                    className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                      showTokenCategory ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+                    }`}
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 4v16m8-8H4"
-                    />
-                  </svg>
-                  Topups
-                </a>
-                <a
-                  href="/orders"
-                  className="flex items-center justify-center gap-2 w-full rounded-lg bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-500/30 px-4 py-2 text-sm font-semibold transition hover:from-blue-500/30 hover:to-cyan-500/30"
-                >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+                    <div className="p-2 bg-black/20 space-y-1.5">
+                      <a
+                        href="/staking"
+                        onClick={() => setShowDropdown(false)}
+                        className="flex items-center gap-2 w-full rounded-lg bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 px-3 py-2 text-xs font-semibold transition hover:from-purple-500/30 hover:to-pink-500/30"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Stake KOHAI
+                      </a>
+                      <a
+                        href="/swap"
+                        onClick={() => setShowDropdown(false)}
+                        className="flex items-center gap-2 w-full rounded-lg bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-500/30 px-3 py-2 text-xs font-semibold transition hover:from-blue-500/30 hover:to-cyan-500/30"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                        Swap Tokens
+                      </a>
+                      <a
+                        href="/topups"
+                        onClick={() => setShowDropdown(false)}
+                        className="flex items-center gap-2 w-full rounded-lg bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 px-3 py-2 text-xs font-semibold transition hover:from-green-500/30 hover:to-emerald-500/30"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Topups
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3️⃣ User Account */}
+                <div className="rounded-lg border border-white/10 overflow-hidden">
+                  <button
+                    onClick={() => setShowAccountCategory(!showAccountCategory)}
+                    className="w-full flex items-center justify-between px-3 py-2 bg-white/5 hover:bg-white/10 transition"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                  My Orders
-                </a>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(address!);
-                    // Could add a toast notification here
-                  }}
-                  className="w-full rounded-lg bg-blue-500/20 px-4 py-2 text-sm font-medium text-blue-300 transition hover:bg-blue-500/30"
-                >
-                  📋 Copy Address
-                </button>
-                <button
-                  onClick={disconnect}
-                  className="w-full rounded-lg bg-red-500/20 px-4 py-2 text-sm font-medium text-red-300 transition hover:bg-red-500/30"
-                >
-                  🔌 Disconnect
-                </button>
+                    <span className="text-xs font-bold text-blue-300">👤 User Account</span>
+                    <svg
+                      className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${showAccountCategory ? 'rotate-180' : ''}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  <div
+                    className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                      showAccountCategory ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+                    }`}
+                  >
+                    <div className="p-2 bg-black/20">
+                      <a
+                        href="/orders"
+                        onClick={() => setShowDropdown(false)}
+                        className="flex items-center gap-2 w-full rounded-lg bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-500/30 px-3 py-2 text-xs font-semibold transition hover:from-blue-500/30 hover:to-cyan-500/30"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        My Orders
+                      </a>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

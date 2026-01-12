@@ -132,6 +132,30 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
     setProductConfirmed(true);
   }, [productItem.id]); // When product changes, auto-confirm it
 
+  // Restore cached userData from sessionStorage on mount
+  const hasRestoredRef = useRef(false);
+  useEffect(() => {
+    if (typeof window !== 'undefined' && productItem.topupProductId && !hasRestoredRef.current) {
+      const cacheKey = `tempUserData_${productItem.topupProductId}`;
+      const cachedData = sessionStorage.getItem(cacheKey);
+
+      if (cachedData) {
+        try {
+          const parsedData = JSON.parse(cachedData);
+          // Only restore if userData is empty and we have cached data
+          if (Object.keys(userData).length === 0 && Object.keys(parsedData).length > 0) {
+            setUserData(parsedData);
+            hasRestoredRef.current = true;
+            console.log('✅ Restored cached user data from sessionStorage:', parsedData);
+          }
+        } catch (error) {
+          console.error('Error parsing cached user data:', error);
+          sessionStorage.removeItem(cacheKey);
+        }
+      }
+    }
+  }, [productItem.topupProductId, userData]); // Only run on mount or when product changes
+
   // Notify parent when game account info is filled
   useEffect(() => {
     if (onGameAccountFilled) {
@@ -686,6 +710,21 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
     }
   }, [isConnected, filteredGameAccounts]);
 
+  // Trigger validation when userData is restored from cache
+  useEffect(() => {
+    if (hasRestoredRef.current && Object.keys(userData).length > 0 && isConnected) {
+      const accountId = userData["User ID"] || userData["Player ID"] || userData["UID"] || userData["Account ID"];
+      if (accountId && accountId.length >= 3) {
+        console.log('🔄 Triggering validation for restored data');
+        // Small delay to ensure filteredGameAccounts is loaded
+        setTimeout(() => {
+          checkAccountExists(userData);
+          hasRestoredRef.current = false;
+        }, 500);
+      }
+    }
+  }, [userData, isConnected, checkAccountExists]);
+
   // Optional manual verification (for users who want to verify and save IGN)
   const [isVerifying, setIsVerifying] = useState(false);
 
@@ -798,6 +837,18 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
         });
       }
 
+      // Immediately cache userData to sessionStorage for this product
+      if (typeof window !== 'undefined') {
+        const cacheKey = `tempUserData_${productItem.topupProductId}`;
+        if (Object.keys(newData).length > 0 && Object.values(newData).some(v => v.trim())) {
+          sessionStorage.setItem(cacheKey, JSON.stringify(newData));
+          console.log('💾 Cached user data to sessionStorage:', cacheKey);
+        } else {
+          // Clear cache if all fields are empty
+          sessionStorage.removeItem(cacheKey);
+        }
+      }
+
       // Clear previous validation timeout
       if (validationTimeoutRef.current) {
         clearTimeout(validationTimeoutRef.current);
@@ -829,7 +880,7 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
 
       return newData;
     });
-  }, [checkAccountExists]);
+  }, [checkAccountExists, productItem.topupProductId]);
 
   // Load saved game account into form
   const handleLoadGameAccount = useCallback((accountId: string) => {
@@ -838,6 +889,13 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
       setUserData(account.userData as Record<string, string>);
       setSelectedGameAccountId(accountId);
       setTempAccountIdForVerify(null); // Clear temp account
+
+      // Clear cached user data when loading a saved account
+      if (typeof window !== 'undefined') {
+        const cacheKey = `tempUserData_${productItem.topupProductId}`;
+        sessionStorage.removeItem(cacheKey);
+        console.log('🧹 Cleared cached user data - loaded saved account');
+      }
 
       // For saved accounts, set verified IGN
       if (account.inGameName) {
@@ -863,7 +921,7 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
 
       console.log('✅ Loaded saved game account:', accountId);
     }
-  }, [filteredGameAccounts]);
+  }, [filteredGameAccounts, productItem.topupProductId]);
 
   // Cleanup validation timeout on unmount
   useEffect(() => {
@@ -897,6 +955,12 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
           setValidationMessage('');
           setVerifiedIGN(null);
           setTempAccountIdForVerify(null);
+          // Clear cached user data from sessionStorage
+          if (typeof window !== 'undefined') {
+            const cacheKey = `tempUserData_${productItem.topupProductId}`;
+            sessionStorage.removeItem(cacheKey);
+            console.log('🧹 Cleared cached user data after account deletion');
+          }
         }
         // Refetch to update the list
         refetchGameAccounts();
@@ -1284,6 +1348,12 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
           setProcessingPayment(false);
           // Reset form
           setUserData({});
+          // Clear cached user data from sessionStorage after successful purchase
+          if (typeof window !== 'undefined') {
+            const cacheKey = `tempUserData_${productItem.topupProductId}`;
+            sessionStorage.removeItem(cacheKey);
+            console.log('🧹 Cleared cached user data after successful purchase');
+          }
         }
       } catch (orderErr: any) {
         console.error("Error creating order:", orderErr);
@@ -1697,88 +1767,6 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
             : 'max-h-0 opacity-0 pointer-events-none'
         }`}
       >
-        {isConnected && (
-          <div className={`mb-2 rounded-lg p-2 ${
-            usdtBalance !== null && usdtBalance < productPriceUsd
-              ? 'bg-gradient-to-br from-red-500/10 to-orange-500/10 border border-red-500/30'
-              : 'bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/30'
-          }`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {usdtBalance !== null && usdtBalance < productPriceUsd ? (
-                <svg className="w-6 h-6 text-red-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
-                </svg>
-              ) : (
-                <svg className="w-6 h-6 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd"/>
-                </svg>
-              )}
-              <div>
-                <p className={`text-sm font-semibold ${
-                  usdtBalance !== null && usdtBalance < productPriceUsd ? 'text-red-300' : 'text-green-300'
-                }`}>
-                  USDT Balance {usdtBalance !== null && usdtBalance < productPriceUsd && '⚠️'}
-                </p>
-                <p className="text-xs text-white/60">Stablecoin (Solana)</p>
-              </div>
-            </div>
-            <div className="text-right">
-              {loadingUsdtBalance ? (
-                <p className="text-lg font-bold text-green-400">Loading...</p>
-              ) : (
-                <p className={`text-lg font-bold ${
-                  usdtBalance !== null && usdtBalance < productPriceUsd ? 'text-red-400' : 'text-green-400'
-                }`}>
-                  {usdtBalance !== null ? usdtBalance.toFixed(2) : '0.00'} USDT
-                </p>
-              )}
-            </div>
-          </div>
-          <div className={`mt-3 pt-3 border-t ${
-            usdtBalance !== null && usdtBalance < (hasDiscount ? discountedPriceUsd : productPriceUsd) ? 'border-red-500/20' : 'border-green-500/20'
-          }`}>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-white/60">Payment Amount:</span>
-              <div className="text-right">
-                {hasDiscount ? (
-                  <div className="flex flex-col items-end gap-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-white/40 line-through text-xs">{productPriceUsd.toFixed(2)} USDT</span>
-                      <span className="font-bold text-green-400">{discountedPriceUsd.toFixed(2)} USDT</span>
-                    </div>
-                    <span style={{
-                      fontSize: '0.65em',
-                      background: isUsingVoucher ? '#9C27B0' : '#00C853',
-                      color: 'white',
-                      padding: '2px 6px',
-                      borderRadius: '4px',
-                      fontWeight: 'bold'
-                    }}>
-                      -{totalDiscountPercent}% {isUsingVoucher ? 'Voucher' : 'VIP'}
-                    </span>
-                  </div>
-                ) : (
-                  <span className="font-bold text-white">{productPriceUsd.toFixed(2)} USDT</span>
-                )}
-              </div>
-            </div>
-            {usdtBalance !== null && usdtBalance < (hasDiscount ? discountedPriceUsd : productPriceUsd) && (
-              <div className="mt-2 pt-2 border-t border-red-500/20">
-                <div className="flex items-center gap-2 text-sm text-red-300">
-                  <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
-                  </svg>
-                  <span className="font-semibold">
-                    Insufficient: Need {((hasDiscount ? discountedPriceUsd : productPriceUsd) - usdtBalance).toFixed(2)} more USDT
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-        )}
       </div>
 
       {/* Error Display */}
@@ -1820,20 +1808,21 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
                 : 'max-h-[1000px] opacity-100'
             }`}
           >
-            <div className="space-y-2 rounded-lg bg-green-500/10 border border-green-500/30 p-2 mb-2">
+            <div className="space-y-2 rounded-lg bg-green-500/10 border border-green-500/30 p-2 mb-2 mx-4">
               <h4 className="text-xs font-semibold text-green-300">✨ Recent Used Accounts</h4>
               <div className="space-y-1">
               {filteredGameAccounts.map((account) => (
                 <div
                   key={account.id}
-                  className={`flex items-center justify-between rounded-lg p-2 transition ${
+                  className={`rounded-lg p-2 transition ${
                     selectedGameAccountId === account.id
                       ? 'bg-green-500/20 ring-2 ring-green-400'
                       : 'bg-white/5 hover:bg-white/10'
                   }`}
                 >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
+                  {/* Row 1: Account Name and Buttons */}
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
                       <span className="font-medium text-white">
                         {account.displayName || account.inGameName || 'Saved Account'}
                       </span>
@@ -1841,46 +1830,50 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
                         <span className="text-xs text-green-400">✓ Verified</span>
                       )}
                     </div>
-                    <div className="text-xs space-y-1">
-                      {/* Display all fields from userData dynamically */}
-                      {account.userData && typeof account.userData === 'object' && Object.entries(account.userData).map(([key, value]) => (
-                        <div key={key} className="flex items-center gap-2">
-                          <span className="text-blue-300 font-semibold">{key}:</span>
-                          <span className="font-mono text-white">{String(value)}</span>
-                        </div>
-                      ))}
-                      {/* Fallback if no userData */}
-                      {(!account.userData || Object.keys(account.userData).length === 0) && (
-                        <>
-                          <div className="flex items-center gap-2">
-                            <span className="text-blue-300 font-semibold">Game ID:</span>
-                            <span className="font-mono text-white">{account.accountId}</span>
-                          </div>
-                          {account.serverId && (
-                            <div className="flex items-center gap-2">
-                              <span className="text-purple-300 font-semibold">Server:</span>
-                              <span className="text-white">{account.serverId}</span>
-                            </div>
-                          )}
-                        </>
-                      )}
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleLoadGameAccount(account.id)}
+                        className="rounded-lg bg-blue-500/20 px-2.5 py-1.5 text-xs text-blue-300 hover:bg-blue-500/30 transition"
+                        title="Select this account"
+                      >
+                        ✓
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteGameAccount(account.id)}
+                        className="rounded-lg bg-red-500/20 px-2.5 py-1.5 text-xs text-red-300 hover:bg-red-500/30 transition"
+                        title="Delete this account"
+                      >
+                        ×
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleLoadGameAccount(account.id)}
-                      className="rounded-lg bg-blue-500/20 px-4 py-1.5 text-sm text-blue-300 hover:bg-blue-500/30 transition"
-                    >
-                      Select
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteGameAccount(account.id)}
-                      className="rounded-lg bg-red-500/20 px-3 py-1.5 text-sm text-red-300 hover:bg-red-500/30 transition"
-                    >
-                      Delete
-                    </button>
+
+                  {/* Row 2: Account Details */}
+                  <div className="text-xs space-y-1">
+                    {/* Display all fields from userData dynamically */}
+                    {account.userData && typeof account.userData === 'object' && Object.entries(account.userData).map(([key, value]) => (
+                      <div key={key} className="flex items-center gap-2">
+                        <span className="text-blue-300 font-semibold whitespace-nowrap">{key}:</span>
+                        <span className="font-mono text-white truncate" title={String(value)}>{String(value)}</span>
+                      </div>
+                    ))}
+                    {/* Fallback if no userData */}
+                    {(!account.userData || Object.keys(account.userData).length === 0) && (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <span className="text-blue-300 font-semibold whitespace-nowrap">Game ID:</span>
+                          <span className="font-mono text-white truncate" title={account.accountId}>{account.accountId}</span>
+                        </div>
+                        {account.serverId && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-purple-300 font-semibold whitespace-nowrap">Server:</span>
+                            <span className="text-white truncate" title={account.serverId}>{account.serverId}</span>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
               ))}
@@ -2246,7 +2239,7 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
                     </span>
                   </div>
                 ) : null}
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center mb-2">
                   <span className="text-sm opacity-70">You will pay:</span>
                   <div className="text-right">
                     {(selectedVoucherId && voucherDiscountPercent > 0) || userDiscountPercent > 0 ? (
@@ -2265,12 +2258,38 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
                     )}
                   </div>
                 </div>
+                {/* Current Balance Display */}
+                <div className={`flex justify-between items-center pt-2 border-t ${
+                  usdtBalance !== null && usdtBalance < (hasDiscount ? discountedPriceUsd : productPriceUsd)
+                    ? 'border-red-500/30'
+                    : 'border-green-500/30'
+                }`}>
+                  <span className="text-sm opacity-70">Current balance:</span>
+                  <div className="text-right flex items-center gap-2">
+                    {usdtBalance !== null && usdtBalance < (hasDiscount ? discountedPriceUsd : productPriceUsd) && (
+                      <svg className="w-4 h-4 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                      </svg>
+                    )}
+                    <span className={`font-mono font-bold ${
+                      usdtBalance !== null && usdtBalance < (hasDiscount ? discountedPriceUsd : productPriceUsd)
+                        ? 'text-red-400'
+                        : 'text-green-400'
+                    }`}>
+                      {usdtBalance !== null ? usdtBalance.toFixed(2) : '0.00'} USDT
+                    </span>
+                  </div>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={handleWalletPayment}
-                disabled={processingPayment}
-                className="w-full rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 px-3 py-2 font-semibold text-white transition hover:from-green-600 hover:to-emerald-600 disabled:opacity-50"
+                disabled={processingPayment || (usdtBalance !== null && usdtBalance < (hasDiscount ? discountedPriceUsd : productPriceUsd))}
+                className={`w-full rounded-lg px-3 py-2 font-semibold text-white transition disabled:opacity-50 disabled:cursor-not-allowed ${
+                  usdtBalance !== null && usdtBalance < (hasDiscount ? discountedPriceUsd : productPriceUsd)
+                    ? 'bg-gradient-to-r from-gray-500 to-gray-600'
+                    : 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600'
+                }`}
               >
                 {processingPayment ? (
                   <span className="flex items-center justify-center gap-2">
@@ -2279,6 +2298,13 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
                     </svg>
                     Processing Payment...
+                  </span>
+                ) : usdtBalance !== null && usdtBalance < (hasDiscount ? discountedPriceUsd : productPriceUsd) ? (
+                  <span className="flex flex-col items-center gap-1 text-sm">
+                    <span>💰 Pay {hasDiscount ? discountedPriceUsd.toFixed(2) : productPriceUsd.toFixed(2)} USDT</span>
+                    <span className="text-xs text-gray-300">
+                      Current balance: {usdtBalance.toFixed(2)} USDT - Insufficient: Need {((hasDiscount ? discountedPriceUsd : productPriceUsd) - usdtBalance).toFixed(2)} more USDT
+                    </span>
                   </span>
                 ) : (
                   `💰 Pay ${hasDiscount ? discountedPriceUsd.toFixed(2) : productPriceUsd.toFixed(2)} USDT`
@@ -2303,15 +2329,15 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
                       Redirecting to payment...
                     </span>
                   ) : (
-                    `🏦 Pay ${Math.max(hasDiscount ? discountedPriceUsd : productPriceUsd, 1.00).toFixed(2)} USD with FPX/Card`
+                    `🏦 Topup & Pay ${Math.max(hasDiscount ? discountedPriceUsd : productPriceUsd, MINIMUM_AMOUNTS['USD']).toFixed(2)} USD with FPX/Card`
                   )}
                 </button>
                 <p className="mt-2 text-xs text-purple-400/60">
                   Supports: FPX (Malaysia), Credit/Debit Cards, Bank Transfer
                 </p>
-                {(hasDiscount ? discountedPriceUsd : productPriceUsd) < 1.00 && (
+                {(hasDiscount ? discountedPriceUsd : productPriceUsd) < MINIMUM_AMOUNTS['USD'] && (
                   <p className="mt-2 text-xs text-yellow-400/80">
-                    ℹ️ Minimum payment: $1.00 USD (Product price is below minimum)
+                    ℹ️ Minimum topup: ${MINIMUM_AMOUNTS['USD'].toFixed(2)} USD (Product price is below minimum)
                   </p>
                 )}
               </div>
