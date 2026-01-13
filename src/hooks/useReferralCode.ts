@@ -63,10 +63,13 @@ export function useReferralCode() {
     } catch (error) {
       console.error('❌ Error applying referral code:', error);
       setIsApplying(false);
-      return {
-        success: false,
-        message: 'Failed to apply referral code. Please try again.'
-      };
+
+      // Clear the pending code on critical errors to prevent retry loops
+      localStorage.removeItem(REFERRAL_CODE_KEY);
+
+      // Don't return error message - network/auth errors shouldn't show as referral errors
+      // This prevents confusing error messages when the issue is authentication, not the referral code
+      return null;
     }
   };
 

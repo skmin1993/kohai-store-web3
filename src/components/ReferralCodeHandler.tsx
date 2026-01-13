@@ -96,10 +96,16 @@ export default function ReferralCodeHandler() {
     applyCode();
   }, [isConnected, isAuthenticated, hasPendingCode, hasAttemptedApply, applyPendingReferralCode, getPendingCode]);
 
-  // Reset attempt flag when user disconnects
+  // Reset attempt flag and clear pending code when user disconnects
   useEffect(() => {
     if (!isConnected) {
       setHasAttemptedApply(false);
+
+      // Clear pending referral code on disconnect to prevent stale codes
+      // This prevents old referral codes from showing errors on next login
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('pendingReferralCode');
+      }
     }
   }, [isConnected]);
 

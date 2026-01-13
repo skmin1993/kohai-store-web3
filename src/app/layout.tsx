@@ -3,6 +3,7 @@
 import SupportFab from "@/components/User/Footer/SupportFab";
 import ReferralCodeHandler from "@/components/ReferralCodeHandler";
 import NotificationHandler from "@/components/NotificationHandler";
+import AuthLoadingOverlay from "@/components/AuthLoadingOverlay";
 import { EmailVerificationProvider } from "@/contexts/EmailVerificationContext";
 import { StoreProvider } from "@/contexts/StoreContext";
 import { UserProvider } from "@/contexts/UserContext";
@@ -45,6 +46,7 @@ export default function RootLayout({
                     <div style={{ backgroundColor: "rgb(0, 0, 0)", color: "#ffffff" }}>
                       <main>{children}</main>
                     </div>
+                    <AuthLoadingOverlay />
                     <SupportFab />
                     <ReferralCodeHandler />
                     <NotificationHandler />

@@ -22,6 +22,7 @@ interface WalletContextType {
   isConnected: boolean;
   address: string | undefined;
   isConnecting: boolean;
+  isLoadingUserData: boolean;
 
   // Actions
   connect: () => void;
@@ -57,11 +58,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const [isConnecting, setIsConnecting] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [isLoadingUserData, setIsLoadingUserData] = useState(false);
   const [authenticateWallet] = useAuthenticateWalletMutation();
 
   // Automatically fetch current user when connected and has JWT token
   const hasJwtToken = typeof window !== 'undefined' && !!window.localStorage.getItem('jwtToken');
-  const { data: currentUserData, refetch: refetchCurrentUser } = useCurrentUserQuery({
+  const { data: currentUserData, refetch: refetchCurrentUser, loading: currentUserLoading } = useCurrentUserQuery({
     skip: !appKitIsConnected || !hasJwtToken,
     fetchPolicy: 'network-only',
   });
@@ -81,8 +83,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       console.log('📧 User email:', currentUserData.currentUser.email);
       console.log('✅ Email verified:', currentUserData.currentUser.emailVerified);
       setUser(currentUserData.currentUser);
+      setIsLoadingUserData(false);
     }
   }, [currentUserData, setUser]);
+
+  // Track loading state when fetching user data
+  useEffect(() => {
+    if (appKitIsConnected && hasJwtToken && currentUserLoading) {
+      setIsLoadingUserData(true);
+    } else if (!currentUserLoading) {
+      setIsLoadingUserData(false);
+    }
+  }, [appKitIsConnected, hasJwtToken, currentUserLoading]);
 
   // 🔍 DEBUG: Log connection state changes IMMEDIATELY
   useEffect(() => {
@@ -413,10 +425,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       // Clear JWT token and user data immediately
       if (typeof window !== 'undefined') {
         window.localStorage.removeItem('jwtToken');
+        window.localStorage.removeItem('jwtTokenAddress');
       }
 
       // Clear user context
       setUser(null);
+
+      // Clear loading state
+      setIsLoadingUserData(false);
+
+      // 🔥 CRITICAL: Clear Apollo cache to prevent old user data from persisting
+      console.log('🗑️ Clearing Apollo cache on disconnect...');
+      clearApolloCache();
 
       // Use AppKit's official disconnect method for Solana namespace
       await modal.disconnect();
@@ -1380,6 +1400,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           console.log('Using extension address (overriding AppKit)');
         }
 
+        // Set loading state while authenticating
+        setIsLoadingUserData(true);
+
         // 📧 Use the memoized socialEmail from embeddedWalletInfo
         console.log('========================================');
         console.log('📧 EMAIL DETECTION');
@@ -1445,6 +1468,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           const errorMessage = result.data.authenticateWallet.errors.join(', ');
           console.error('❌ Authentication failed:', errorMessage);
           setAuthError(errorMessage);
+          setIsLoadingUserData(false);
 
           // Show error notification to user
           if (typeof window !== 'undefined') {
@@ -1460,6 +1484,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         console.error('❌ Error authenticating wallet:', error);
         const errorMsg = error instanceof Error ? error.message : 'Unknown authentication error';
         setAuthError(errorMsg);
+        setIsLoadingUserData(false);
 
         // Show error notification to user
         if (typeof window !== 'undefined') {
@@ -1483,6 +1508,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     isConnected,
     address,
     isConnecting,
+    isLoadingUserData,
     connect,
     disconnect,
     signMessage,
