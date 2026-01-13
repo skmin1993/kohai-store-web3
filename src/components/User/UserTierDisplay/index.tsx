@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import TierBadge from "../TierBadge";
 import styles from "./UserTierDisplay.module.css";
 
@@ -44,6 +44,7 @@ const UserTierDisplay: React.FC<UserTierDisplayProps> = ({
   compact = false
 }) => {
   const balance = kohaiBalance || 0;
+  const [showTierModal, setShowTierModal] = useState(false);
 
   // Treat "none" as no tier
   const hasActualTier = tier && tierName && tierName.toLowerCase() !== 'none';
@@ -120,6 +121,13 @@ const UserTierDisplay: React.FC<UserTierDisplayProps> = ({
     <div className={styles.tierDisplay}>
       <div className={styles.header}>
         <h3 className={styles.title}>VIP Status</h3>
+        <button
+          onClick={() => setShowTierModal(true)}
+          className={styles.readMoreButton}
+          type="button"
+        >
+          Read More
+        </button>
       </div>
 
       {hasActualTier ? (
@@ -191,6 +199,98 @@ const UserTierDisplay: React.FC<UserTierDisplayProps> = ({
       {!nextTier && hasActualTier && tierName?.toLowerCase() === "legend" && (
         <div className={styles.maxTier}>
           <p className={styles.maxTierText}>🎉 Maximum Tier Reached!</p>
+        </div>
+      )}
+
+      {/* Tier Information Modal */}
+      {showTierModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowTierModal(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>VIP Tier System</h2>
+              <button
+                onClick={() => setShowTierModal(false)}
+                className={styles.closeButton}
+                type="button"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className={styles.modalBody}>
+              <p className={styles.modalIntro}>
+                Hold $KOHAI tokens in your wallet to unlock exclusive discounts on all purchases!
+              </p>
+
+              <div className={styles.tiersList}>
+                {/* Elite Tier */}
+                <div className={styles.tierCard} style={{ borderColor: '#C0C0C0' }}>
+                  <div className={styles.tierCardHeader} style={{ background: 'linear-gradient(135deg, #C0C0C0 0%, #E8E8E8 100%)' }}>
+                    <h3 className={styles.tierCardTitle} style={{ color: '#333' }}>⭐ Elite Tier</h3>
+                    <span className={styles.tierCardDiscount} style={{ color: '#333' }}>1% OFF</span>
+                  </div>
+                  <div className={styles.tierCardBody}>
+                    <div className={styles.tierRequirement}>
+                      <span className={styles.requirementLabel}>Required:</span>
+                      <span className={styles.requirementValue}>50,000 $KOHAI</span>
+                    </div>
+                    <div className={styles.tierBenefits}>
+                      <p className={styles.benefitItem}>✓ 1% discount on all purchases</p>
+                      <p className={styles.benefitItem}>✓ Silver tier badge</p>
+                      <p className={styles.benefitItem}>✓ Exclusive member status</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Grandmaster Tier */}
+                <div className={styles.tierCard} style={{ borderColor: '#FFD700' }}>
+                  <div className={styles.tierCardHeader} style={{ background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' }}>
+                    <h3 className={styles.tierCardTitle} style={{ color: '#333' }}>⭐⭐ Grandmaster Tier</h3>
+                    <span className={styles.tierCardDiscount} style={{ color: '#333' }}>2% OFF</span>
+                  </div>
+                  <div className={styles.tierCardBody}>
+                    <div className={styles.tierRequirement}>
+                      <span className={styles.requirementLabel}>Required:</span>
+                      <span className={styles.requirementValue}>500,000 $KOHAI</span>
+                    </div>
+                    <div className={styles.tierBenefits}>
+                      <p className={styles.benefitItem}>✓ 2% discount on all purchases</p>
+                      <p className={styles.benefitItem}>✓ Gold tier badge</p>
+                      <p className={styles.benefitItem}>✓ Enhanced member status</p>
+                      <p className={styles.benefitItem}>✓ Priority support</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Legend Tier */}
+                <div className={styles.tierCard} style={{ borderColor: '#FF6B35', boxShadow: '0 0 20px rgba(255, 107, 53, 0.4)' }}>
+                  <div className={styles.tierCardHeader} style={{ background: 'linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%)' }}>
+                    <h3 className={styles.tierCardTitle} style={{ color: '#FFF' }}>⭐⭐⭐ Legend Tier</h3>
+                    <span className={styles.tierCardDiscount} style={{ color: '#FFF' }}>3% OFF</span>
+                  </div>
+                  <div className={styles.tierCardBody}>
+                    <div className={styles.tierRequirement}>
+                      <span className={styles.requirementLabel}>Required:</span>
+                      <span className={styles.requirementValue}>3,000,000 $KOHAI</span>
+                    </div>
+                    <div className={styles.tierBenefits}>
+                      <p className={styles.benefitItem}>✓ 3% discount on all purchases</p>
+                      <p className={styles.benefitItem}>✓ Exclusive orange glowing badge</p>
+                      <p className={styles.benefitItem}>✓ Maximum member status</p>
+                      <p className={styles.benefitItem}>✓ Priority support</p>
+                      <p className={styles.benefitItem}>✓ Early access to new features</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.modalFooter}>
+                <p className={styles.footerNote}>
+                  💡 <strong>How it works:</strong> Your tier is automatically calculated based on your $KOHAI token balance. Discounts are applied instantly at checkout!
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
