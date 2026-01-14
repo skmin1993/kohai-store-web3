@@ -20,7 +20,7 @@ type CategoryType = "others" | "favourite" | "popular" | "new_release" | "trendi
 const TopupProducts = (props: { from?: string; slug?: string }) => {
   const { store } = useStore();
   const router = useRouter();
-  const { isFavorite, favorites } = useFavorites();
+  const { favorites } = useFavorites();
 
   const [page, setPage] = useState(1);
   const searchParams = useSearchParams();
@@ -89,7 +89,7 @@ const TopupProducts = (props: { from?: string; slug?: string }) => {
     });
 
     // Deduplicate all products
-    return Array.from(
+    const dedupedProducts = Array.from(
       products.reduce((map, product) => {
         const { gameName, regionCode } = parseProductTitle(product.title);
 
@@ -119,6 +119,13 @@ const TopupProducts = (props: { from?: string; slug?: string }) => {
         return map;
       }, new Map<string, TopupProductFragment>()).values()
     );
+
+    // Sort by ordering (ascending: 1 first, null/undefined at the end)
+    return dedupedProducts.sort((a, b) => {
+      const orderA = a.ordering ? parseInt(a.ordering, 10) : Number.MAX_SAFE_INTEGER;
+      const orderB = b.ordering ? parseInt(b.ordering, 10) : Number.MAX_SAFE_INTEGER;
+      return orderA - orderB;
+    });
   }, [data?.topupProducts]);
 
   // Filter products by selected category and platform - Memoized for performance
@@ -194,15 +201,13 @@ const TopupProducts = (props: { from?: string; slug?: string }) => {
       }, new Map<string, TopupProductFragment>()).values()
     );
 
-    // Sort products: favorites first, then others
+    // Sort products by ordering (ascending: 1 first, null/undefined at the end)
     return (dedupedProducts as TopupProductFragment[]).sort((a, b) => {
-      const aIsFav = isFavorite(a.id);
-      const bIsFav = isFavorite(b.id);
-      if (aIsFav && !bIsFav) return -1;
-      if (!aIsFav && bIsFav) return 1;
-      return 0;
+      const orderA = a.ordering ? parseInt(a.ordering, 10) : Number.MAX_SAFE_INTEGER;
+      const orderB = b.ordering ? parseInt(b.ordering, 10) : Number.MAX_SAFE_INTEGER;
+      return orderA - orderB;
     });
-  }, [filteredProducts, isFavorite]);
+  }, [filteredProducts]);
 
   // Debug logging
   console.log("TopupProducts Debug:", {

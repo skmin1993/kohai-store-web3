@@ -191,7 +191,7 @@ export const filterProductsByCategory = (
 };
 
 /**
- * Gets all categorized products
+ * Gets all categorized products, sorted by ordering (ascending, 1 first)
  */
 export const getCategorizedProducts = (
   products: any[],
@@ -199,7 +199,15 @@ export const getCategorizedProducts = (
 ): CategorizedProduct[] => {
   // Ensure we have a mutable array
   const productList = Array.isArray(products) ? [...products] : [];
-  return productList.map(product => categorizeProduct(product, favouriteIds));
+
+  // Sort by ordering (ascending: 1 first, null/undefined at the end)
+  const sortedProducts = productList.sort((a, b) => {
+    const orderA = a.ordering ? parseInt(a.ordering, 10) : Number.MAX_SAFE_INTEGER;
+    const orderB = b.ordering ? parseInt(b.ordering, 10) : Number.MAX_SAFE_INTEGER;
+    return orderA - orderB;
+  });
+
+  return sortedProducts.map(product => categorizeProduct(product, favouriteIds));
 };
 
 /**
