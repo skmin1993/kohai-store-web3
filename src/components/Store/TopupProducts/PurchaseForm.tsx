@@ -1365,8 +1365,51 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
           }
         }
       } catch (orderErr: any) {
-        console.error("Error creating order:", orderErr);
-        setFormErrors([orderErr.message || "Payment succeeded but order creation failed. Please contact support with transaction: " + signature]);
+        console.error("Error creating order (attempt 1):", orderErr);
+
+        // Retry logic for critical order creation - user has already paid!
+        let retrySuccess = false;
+        for (let attempt = 2; attempt <= 3; attempt++) {
+          try {
+            console.log(`🔄 Retrying order creation (attempt ${attempt}/3)...`);
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+
+            const retryResult = await createOrder({
+              variables: {
+                topupProductItemId: productItem.id,
+                transactionSignature: signature,
+                userData: Object.keys(userData).length > 0 ? userData : undefined,
+                cryptoCurrency: 'USDT',
+                cryptoAmount: paymentAmount,
+              },
+            });
+
+            if (retryResult.data?.createOrder?.order) {
+              console.log(`✅ Order created successfully on attempt ${attempt}`);
+              setOrderResult(retryResult.data.createOrder.order);
+              retrySuccess = true;
+              break;
+            } else if (retryResult.data?.createOrder?.errors) {
+              console.error(`❌ Backend errors on attempt ${attempt}:`, retryResult.data.createOrder.errors);
+            }
+          } catch (retryErr) {
+            console.error(`Error on retry attempt ${attempt}:`, retryErr);
+          }
+        }
+
+        if (!retrySuccess) {
+          // All retries failed - show error with transaction signature for support
+          setFormErrors([
+            '⚠️ Payment sent but order creation failed',
+            '',
+            'Your payment was successful but we could not create your order.',
+            'Please contact support with this transaction signature:',
+            '',
+            signature,
+            '',
+            'Error: ' + (orderErr.message || 'Network error - Load failed')
+          ]);
+        }
         setProcessingPayment(false);
       }
     } catch (err: any) {
