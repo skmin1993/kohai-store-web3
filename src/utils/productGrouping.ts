@@ -14,7 +14,7 @@ export interface GroupedProducts {
 
 /**
  * Parses title to extract game_name and region_code
- * Example: "Mobile Legends: Bang Bang (MY/SG)" 
+ * Example: "Mobile Legends: Bang Bang (MY/SG)"
  *   → { gameName: "Mobile Legends: Bang Bang", regionCode: "MY/SG" }
  *
  * Supports patterns like:
@@ -23,14 +23,18 @@ export interface GroupedProducts {
  * - "Game Name (XX/YY/ZZ)" → multiple region codes
  * - "Game Name (SEA)" → 3-letter region code
  * - "Game Name (MY/SG)" → 2-letter region codes
+ * - "Game Name (Russia)" → full country name
+ * - "Game Name (KH/TW/Mongolia/Brunei)" → mixed codes and names
  */
 export function parseProductTitle(title: string): {
   gameName: string;
   regionCode: string;
 } {
-  // Match pattern: "Game Name (REGION_CODE)" where region can be 2+ letters with optional / separators
-  // Supports: (MY) (SEA) (MY/SG) (MY/SG/BN) (EU/NA) etc.
-  const match = title.match(/^(.+?)\s*\(([A-Z]{2,}(?:\/[A-Z]{2,})*)\)$/);
+  // Match pattern: "Game Name (REGION_CODE)" where region can be:
+  // - 2+ letters (uppercase or mixed case for full country names)
+  // - Multiple regions separated by /
+  // Supports: (MY) (SEA) (MY/SG) (Russia) (KH/TW/Mongolia/Brunei) etc.
+  const match = title.match(/^(.+?)\s*\(([A-Za-z]{2,}(?:\/[A-Za-z]{2,})*)\)$/);
 
   if (match) {
     return {

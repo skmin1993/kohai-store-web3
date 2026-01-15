@@ -32,6 +32,7 @@ export const COUNTRY_MAP: Record<string, { name: string; flag: string }> = {
   TW: { name: "Taiwan", flag: "🇹🇼" },
   HK: { name: "Hong Kong", flag: "🇭🇰" },
   MO: { name: "Macau", flag: "🇲🇴" },
+  MN: { name: "Mongolia", flag: "🇲🇳" },
 
   // South Asia
   IN: { name: "India", flag: "🇮🇳" },
@@ -95,6 +96,12 @@ export const COUNTRY_MAP: Record<string, { name: string; flag: string }> = {
   ASIA: { name: "Asia", flag: "🌏" },
   GLOBAL: { name: "Global", flag: "🌐" },
   WW: { name: "Worldwide", flag: "🌐" },
+
+  // Full country name aliases (for products using full names instead of codes)
+  Russia: { name: "Russia", flag: "🇷🇺" },
+  Mongolia: { name: "Mongolia", flag: "🇲🇳" },
+  Brunei: { name: "Brunei", flag: "🇧🇳" },
+  USA: { name: "United States", flag: "🇺🇸" },
 };
 
 /**
