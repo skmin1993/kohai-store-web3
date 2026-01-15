@@ -144,15 +144,23 @@ const MyOrdersList = () => {
 
   // OPTIMIZATION 4: Memoize expensive filtering operations
   const { filteredOrders, pendingCount, paidCount, completedCount, failedCount } = useMemo(() => {
+    // Helper to check if status is "completed" (includes both "completed" and "succeeded")
+    const isCompletedStatus = (status: string) => {
+      const lower = status.toLowerCase();
+      return lower === 'completed' || lower === 'succeeded';
+    };
+
     const filtered = statusFilter === "all"
       ? orders
-      : orders.filter(order => order.status.toLowerCase() === statusFilter.toLowerCase());
+      : statusFilter === "completed"
+        ? orders.filter(order => isCompletedStatus(order.status))
+        : orders.filter(order => order.status.toLowerCase() === statusFilter.toLowerCase());
 
     return {
       filteredOrders: filtered,
       pendingCount: orders.filter(o => o.status.toLowerCase() === 'pending').length,
       paidCount: orders.filter(o => o.status.toLowerCase() === 'paid').length,
-      completedCount: orders.filter(o => o.status.toLowerCase() === 'completed').length,
+      completedCount: orders.filter(o => isCompletedStatus(o.status)).length,
       failedCount: orders.filter(o => o.status.toLowerCase() === 'failed').length,
     };
   }, [orders, statusFilter]);
@@ -178,6 +186,7 @@ const MyOrdersList = () => {
       case 'paid':
         return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
       case 'completed':
+      case 'succeeded':
         return 'bg-green-500/20 text-green-300 border-green-500/30';
       case 'failed':
         return 'bg-red-500/20 text-red-300 border-red-500/30';

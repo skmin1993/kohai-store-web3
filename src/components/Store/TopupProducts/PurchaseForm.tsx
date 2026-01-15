@@ -55,10 +55,11 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
     return 0;
   };
 
-  // Always use backend discountPercent if provided (>= 0), otherwise fallback to tier name
-  const userDiscountPercent = (user?.discountPercent !== undefined && user?.discountPercent !== null && user.discountPercent >= 0)
+  // Use backend discountPercent if provided and > 0, otherwise fallback to tier name
+  // This ensures Elite (1%), Grandmaster (2%), Legend (3%) discounts are applied
+  const userDiscountPercent = (user?.discountPercent !== undefined && user?.discountPercent !== null && user.discountPercent > 0)
     ? user.discountPercent
-    : getTierDiscount(user?.tierName);
+    : getTierDiscount(user?.tier || user?.tierName);
 
   const [orderResult, setOrderResult] = useState<any>(null);
   const [userData, setUserData] = useState<Record<string, string>>({});
