@@ -242,10 +242,14 @@ const OrderReceipt = (props: { id: string; slug?: string }) => {
               // Parse metadata if it's a string
               let metadataObj: Record<string, any> = {};
               try {
-                metadataObj = typeof order.metadata === 'string'
-                  ? JSON.parse(order.metadata)
-                  : order.metadata;
-              } catch {
+                if (typeof order.metadata === 'string') {
+                  metadataObj = JSON.parse(order.metadata);
+                } else if (typeof order.metadata === 'object' && order.metadata !== null) {
+                  metadataObj = order.metadata as Record<string, any>;
+                } else {
+                  return null;
+                }
+              } catch (_e) {
                 return null;
               }
 
