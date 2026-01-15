@@ -238,19 +238,39 @@ const OrderReceipt = (props: { id: string; slug?: string }) => {
             </div>
 
             {/* Display User Input Data (Game Account Info) */}
-            {order.metadata && Object.keys(order.metadata).length > 0 && (
-              <div className="mt-4 rounded-lg bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 p-4">
-                <p className="mb-3 font-bold text-blue-300">Game Account Information</p>
-                <div className="space-y-2">
-                  {Object.entries(order.metadata).map(([key, value]) => (
-                    <div key={key} className="flex justify-between border-b border-white/10 pb-2 last:border-0">
-                      <p className="text-sm opacity-70">{key}</p>
-                      <p className="text-sm font-semibold">{String(value)}</p>
-                    </div>
-                  ))}
+            {order.metadata && (() => {
+              // Parse metadata if it's a string
+              let metadataObj: Record<string, any> = {};
+              try {
+                metadataObj = typeof order.metadata === 'string'
+                  ? JSON.parse(order.metadata)
+                  : order.metadata;
+              } catch {
+                return null;
+              }
+
+              // Filter out internal/system fields
+              const internalFields = ['sn', 'trx_date', 'callback_received_at', 'provider_response', 'raw_response'];
+              const userFields = Object.entries(metadataObj).filter(
+                ([key]) => !internalFields.includes(key) && !key.startsWith('_')
+              );
+
+              if (userFields.length === 0) return null;
+
+              return (
+                <div className="mt-4 rounded-lg bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 p-4">
+                  <p className="mb-3 font-bold text-blue-300">Game Account Information</p>
+                  <div className="space-y-2">
+                    {userFields.map(([key, value]) => (
+                      <div key={key} className="flex justify-between border-b border-white/10 pb-2 last:border-0">
+                        <p className="text-sm opacity-70">{key}</p>
+                        <p className="text-sm font-semibold">{String(value)}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
 
           {/* Actions */}
