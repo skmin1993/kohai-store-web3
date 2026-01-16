@@ -1180,12 +1180,24 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
         // Handle other errors
         const errorMessage = txError?.message || txError?.toString() || 'Unknown transaction error';
 
-        setFormErrors([
-          'Payment transaction failed.',
-          'Transaction signature is cancelled.',
-          errorMessage,
-          'Your wallet was not charged. Please try again.'
-        ]);
+        // Check if it's a block height exceeded error - transaction may have gone through
+        if (errorMessage.includes('block height exceeded') || errorMessage.includes('expired')) {
+          setFormErrors([
+            '⚠️ Transaction confirmation timed out',
+            '',
+            'Your transaction may have been processed.',
+            'Please check your wallet balance before trying again.',
+            '',
+            'If you were charged, please contact support.'
+          ]);
+        } else {
+          setFormErrors([
+            'Payment transaction failed.',
+            errorMessage,
+            '',
+            'Your wallet was not charged. Please try again.'
+          ]);
+        }
         setProcessingPayment(false);
         return;
       }

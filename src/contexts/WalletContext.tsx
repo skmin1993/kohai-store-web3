@@ -859,15 +859,52 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
       console.log('SPL token transaction sent:', signature);
 
-      // Wait for confirmation
+      // Wait for confirmation with retry logic
       console.log('Waiting for confirmation...');
-      await connection.confirmTransaction({
-        signature,
-        blockhash,
-        lastValidBlockHeight
-      });
+      let confirmed = false;
 
-      console.log('SPL token transaction confirmed!');
+      // Try to confirm up to 3 times with different strategies
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          if (attempt === 1) {
+            // First attempt: use blockhash confirmation
+            await connection.confirmTransaction({
+              signature,
+              blockhash,
+              lastValidBlockHeight
+            });
+          } else {
+            // Retry attempts: use signature status check
+            console.log(`Confirmation retry attempt ${attempt}...`);
+            const status = await connection.getSignatureStatus(signature);
+            if (status?.value?.confirmationStatus === 'confirmed' || status?.value?.confirmationStatus === 'finalized') {
+              console.log(`Transaction confirmed on attempt ${attempt}`);
+              confirmed = true;
+              break;
+            }
+            // Wait before next retry
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            continue;
+          }
+          confirmed = true;
+          break;
+        } catch (err: any) {
+          console.log(`Confirmation attempt ${attempt} failed:`, err?.message || err);
+          if (attempt < 3) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
+        }
+      }
+
+      if (confirmed) {
+        console.log('SPL token transaction confirmed!');
+      } else {
+        // Transaction was sent but confirmation failed/timed out
+        // The transaction may still have gone through - return the signature anyway
+        console.log('⚠️ Confirmation timed out, but transaction was sent. Returning signature.');
+      }
+
+      // Always return the signature if we have it - the transaction was sent
       return signature;
     } catch (error: any) {
       // Check for user cancellation/rejection (most common case)
