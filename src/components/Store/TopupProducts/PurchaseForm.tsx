@@ -1661,19 +1661,43 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
           )}
 
           {/* Display User Input Data (Game Account Info) */}
-          {orderResult.metadata && Object.keys(orderResult.metadata).length > 0 && (
-            <>
-              <div className="mt-4 pt-4 border-t border-white/20">
-                <h4 className="text-sm font-semibold opacity-70 mb-2">Game Account Details:</h4>
-              </div>
-              {Object.entries(orderResult.metadata).map(([key, value]) => (
-                <div key={key} className="flex justify-between border-b border-white/10 pb-2">
-                  <span className="text-sm opacity-70">{key}:</span>
-                  <span className="text-sm font-semibold">{String(value)}</span>
+          {orderResult.metadata && (() => {
+            // Parse metadata if it's a string
+            let metadataObj: Record<string, any> = {};
+            try {
+              if (typeof orderResult.metadata === 'string') {
+                metadataObj = JSON.parse(orderResult.metadata);
+              } else if (typeof orderResult.metadata === 'object' && orderResult.metadata !== null) {
+                metadataObj = orderResult.metadata as Record<string, any>;
+              } else {
+                return null;
+              }
+            } catch (_e) {
+              return null;
+            }
+
+            // Filter out internal/system fields
+            const internalFields = ['sn', 'trx_date', 'callback_received_at', 'provider_response', 'raw_response'];
+            const userFields = Object.entries(metadataObj).filter(
+              ([key]) => !internalFields.includes(key) && !key.startsWith('_')
+            );
+
+            if (userFields.length === 0) return null;
+
+            return (
+              <>
+                <div className="mt-4 pt-4 border-t border-white/20">
+                  <h4 className="text-sm font-semibold opacity-70 mb-2">Game Account Details:</h4>
                 </div>
-              ))}
-            </>
-          )}
+                {userFields.map(([key, value]) => (
+                  <div key={key} className="flex justify-between border-b border-white/10 pb-2">
+                    <span className="text-sm opacity-70">{key}:</span>
+                    <span className="text-sm font-semibold">{String(value)}</span>
+                  </div>
+                ))}
+              </>
+            );
+          })()}
         </div>
 
         <div className="mt-4 space-y-2">
@@ -1681,13 +1705,19 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
             onClick={() => window.location.href = `/orders/${orderResult.id}`}
             className="w-full rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 px-4 py-2 font-semibold transition hover:from-blue-600 hover:to-purple-600"
           >
-            View Order Details
+            View Receipt
           </button>
           <button
-            onClick={() => setOrderResult(null)}
+            onClick={() => window.location.href = '/orders'}
             className="w-full rounded-lg bg-white/10 px-4 py-2 font-semibold transition hover:bg-white/20"
           >
-            Create Another Order
+            My Orders
+          </button>
+          <button
+            onClick={() => window.location.href = '/'}
+            className="w-full rounded-lg bg-white/5 px-4 py-2 font-semibold transition hover:bg-white/10"
+          >
+            Browse Products
           </button>
         </div>
       </div>
