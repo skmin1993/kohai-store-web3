@@ -1304,6 +1304,14 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
           setValidationStatus('idle');
           setValidationMessage('');
 
+          // Auto-redirect to order receipt page after 3 seconds
+          const orderId = result.data?.createOrder?.order?.id;
+          if (orderId) {
+            setTimeout(() => {
+              window.location.href = `/orders/${orderId}`;
+            }, 3000);
+          }
+
           // Automatically save game account after successful order
           if (Object.keys(userData).length > 0) {
             try {
@@ -1400,6 +1408,13 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
             if (retryResult.data?.createOrder?.order) {
               console.log(`✅ Order created successfully on attempt ${attempt}`);
               setOrderResult(retryResult.data.createOrder.order);
+              // Auto-redirect to order receipt page after 3 seconds
+              const retryOrderId = retryResult.data.createOrder.order.id;
+              if (retryOrderId) {
+                setTimeout(() => {
+                  window.location.href = `/orders/${retryOrderId}`;
+                }, 3000);
+              }
               retrySuccess = true;
               break;
             } else if (retryResult.data?.createOrder?.errors) {
@@ -1591,6 +1606,7 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
           </svg>
           <h3 className="text-2xl font-bold text-green-400">Order Created Successfully!</h3>
         </div>
+        <p className="text-sm text-green-300/70 mb-4">Redirecting to order receipt in a few seconds...</p>
 
         <div className="space-y-3 rounded-lg bg-white/5 p-2">
           <div className="flex justify-between border-b border-white/10 pb-2">
