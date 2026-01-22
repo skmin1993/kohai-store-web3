@@ -18,7 +18,7 @@ const FooterPremium = ({ slug }: { slug?: string }) => {
   const { store } = useStore();
 
   return (
-    <footer className="mt-24 pb-24 pt-10">
+    <footer className="mt-24 pb-32 pt-10 md:pb-24">
       <div className="container mx-auto">
         <div className="grid gap-4 md:grid-cols-5">
           <div className="md:col-span-2">

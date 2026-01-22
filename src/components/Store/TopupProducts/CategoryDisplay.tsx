@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { getCategorizedProducts } from "@/utils/productCategorization";
 import TopupProductListItem from "./ListItem";
 import PremiumListItem from "@/components/Premium/TopupProducts/ListItem";
@@ -19,6 +19,8 @@ interface CategorySectionProps {
   onItemClick?: (item: any) => void;
 }
 
+const MOBILE_ITEMS_PER_PAGE = 9;
+
 const CategorySection = ({
   title,
   products,
@@ -29,12 +31,38 @@ const CategorySection = ({
   onItemClick,
   showPlatform,
 }: CategorySectionProps & { showPlatform?: boolean }) => {
+  const [mobileDisplayCount, setMobileDisplayCount] = useState(MOBILE_ITEMS_PER_PAGE);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
   if (!products || products.length === 0) {
     return null;
   }
 
   // Check if this is the popular section for special styling
   const isPopularSection = categoryId === "popular";
+
+  const mobileProducts = products.slice(0, mobileDisplayCount);
+  const hasMoreMobile = mobileDisplayCount < products.length;
+
+  // Infinite scroll - load more when sentinel comes into view
+  useEffect(() => {
+    if (!hasMoreMobile) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setMobileDisplayCount(prev => Math.min(prev + MOBILE_ITEMS_PER_PAGE, products.length));
+        }
+      },
+      { threshold: 0.1, rootMargin: '100px' }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasMoreMobile, products.length]);
 
   return (
     <div className="mb-12">
@@ -49,7 +77,7 @@ const CategorySection = ({
         </div>
       </div>
 
-      {/* Horizontal scrolling layout for mobile, grid for desktop */}
+      {/* Grid layout for desktop */}
       <div className="hidden md:block">
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-5">
           {products.map((item, index) => (
@@ -77,11 +105,11 @@ const CategorySection = ({
         </div>
       </div>
 
-      {/* Mobile horizontal scroll */}
-      <div className="md:hidden overflow-x-auto pb-4 -mx-4 px-4">
-        <div className="flex gap-3 min-w-full">
-          {products.map((item, index) => (
-            <div key={`${categoryId}-${index}`} className="flex-shrink-0 w-40">
+      {/* Mobile vertical grid - 3 columns, infinite scroll */}
+      <div className="md:hidden">
+        <div className="grid grid-cols-3 gap-2">
+          {mobileProducts.map((item, index) => (
+            <div key={`${categoryId}-mobile-${index}`}>
               {isPremium ? (
                 <PremiumListItem
                   item={item}
@@ -103,6 +131,13 @@ const CategorySection = ({
             </div>
           ))}
         </div>
+        {/* Infinite scroll sentinel */}
+        {hasMoreMobile && (
+          <div ref={loadMoreRef} className="mt-4 py-4 text-center">
+            <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-white/30 border-t-white"></div>
+            <p className="mt-2 text-xs text-gray-400">Loading more...</p>
+          </div>
+        )}
       </div>
     </div>
   );

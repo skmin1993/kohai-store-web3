@@ -5,7 +5,7 @@ import FooterPremium from "../Premium/Footer";
 import HeaderPremium from "../Premium/Header";
 import Footer from "../User/Footer";
 import Header from "../User/Header";
-import MobileStakeButton from "../Staking/MobileStakeButton";
+import MobileBottomNav from "../User/MobileBottomNav";
 
 export default function StoreLayout({
   children,
@@ -61,8 +61,8 @@ export default function StoreLayout({
             </>
           )}
         </div>
-        {/* Mobile Stake Button - Floating Action Button */}
-        <MobileStakeButton />
+        {/* Mobile Bottom Navigation */}
+        <MobileBottomNav />
       </div>
     </Suspense>
   );

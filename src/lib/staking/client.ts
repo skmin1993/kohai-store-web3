@@ -140,9 +140,11 @@ export class StakingClient {
 
       const poolDuration =
         stakingPool.endTime.toNumber() - stakingPool.startTime.toNumber();
+      const totalRewardTokens = stakingPool.totalRewardAmount.toNumber() / 1e6; // Convert to token units (6 decimals)
+      const totalStakedForApy = stakingPool.totalStaked.toNumber() / 1e6; // Use same decimals
       const apy =
-        totalStaked > 0
-          ? ((stakingPool.totalRewardAmount.toNumber() / totalStaked) *
+        totalStakedForApy > 0
+          ? ((totalRewardTokens / totalStakedForApy) *
               (365 * 24 * 60 * 60)) /
             poolDuration
           : 0;

@@ -19,7 +19,7 @@ const Footer = ({ slug }: { slug?: string }) => {
 
   return (
     <footer
-      className="mt-24 pb-24 pt-10"
+      className="mt-24 pb-32 pt-10 md:pb-24"
       style={{ backgroundColor: store?.footerColor ?? undefined }}
     >
       <div className="container mx-auto">

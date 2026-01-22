@@ -390,10 +390,16 @@ const TopupProducts = (props: { from?: string; slug?: string }) => {
       )}
 
       {error && (
-        <div className="rounded bg-red-100 p-4 text-red-700">
-          <p className="font-bold">Error loading products:</p>
-          <p>{error.message}</p>
-          <pre className="mt-2 text-xs">{JSON.stringify(error, null, 2)}</pre>
+        <div className="rounded-lg bg-white/5 border border-white/10 p-6 text-center">
+          <div className="text-4xl mb-3">😕</div>
+          <p className="font-semibold text-white mb-2">Unable to load products</p>
+          <p className="text-sm text-gray-400 mb-4">Please check your connection and try again.</p>
+          <button
+            onClick={() => refetch()}
+            className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-medium transition"
+          >
+            Try Again
+          </button>
         </div>
       )}
 

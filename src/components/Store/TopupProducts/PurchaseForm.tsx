@@ -1218,11 +1218,32 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
         console.log("  Connected wallet address:", address);
         console.log("  Transaction signature:", signature);
         
-        const authResult = await authenticateWallet({
-          variables: {
-            walletAddress: address,
-          },
-        });
+        let authResult;
+        try {
+          authResult = await authenticateWallet({
+            variables: {
+              walletAddress: address,
+            },
+          });
+        } catch (authError: any) {
+          console.error('Authentication network error:', authError);
+          const isNetworkError = authError?.message?.toLowerCase().includes('load failed') ||
+            authError?.message?.toLowerCase().includes('network') ||
+            authError?.message?.toLowerCase().includes('fetch') ||
+            authError?.networkError;
+
+          setFormErrors([
+            isNetworkError ? '❌ Network Error' : '❌ Authentication Error',
+            '',
+            'Your payment was successful but we had trouble connecting to the server.',
+            'Please check your internet connection and try again.',
+            '',
+            '⚠️ Your transaction signature (save this for support):',
+            signature,
+          ]);
+          setProcessingPayment(false);
+          return;
+        }
 
         if (authResult.data?.authenticateWallet?.errors && authResult.data.authenticateWallet.errors.length > 0) {
           setFormErrors(["Authentication failed: " + authResult.data.authenticateWallet.errors.join(", ")]);
@@ -1262,15 +1283,38 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
           discountedPriceUsd: discountedPriceUsd,
           roundedPaymentAmount: paymentAmount
         });
-        const result = await createOrder({
-          variables: {
-            topupProductItemId: productItem.id,
-            transactionSignature: signature,
-            userData: Object.keys(userData).length > 0 ? userData : undefined,
-            cryptoCurrency: 'USDT',
-            cryptoAmount: paymentAmount,
-          },
-        });
+        let result;
+        try {
+          result = await createOrder({
+            variables: {
+              topupProductItemId: productItem.id,
+              transactionSignature: signature,
+              userData: Object.keys(userData).length > 0 ? userData : undefined,
+              cryptoCurrency: 'USDT',
+              cryptoAmount: paymentAmount,
+            },
+          });
+        } catch (orderNetworkError: any) {
+          console.error('Order creation network error:', orderNetworkError);
+          const isNetworkError = orderNetworkError?.message?.toLowerCase().includes('load failed') ||
+            orderNetworkError?.message?.toLowerCase().includes('network') ||
+            orderNetworkError?.message?.toLowerCase().includes('fetch') ||
+            orderNetworkError?.networkError;
+
+          setFormErrors([
+            isNetworkError ? '❌ Network Error During Order Creation' : '❌ Order Creation Error',
+            '',
+            '⚠️ Your payment was successful!',
+            'However, we had trouble creating your order due to a connection issue.',
+            '',
+            'Please contact support with this transaction signature:',
+            signature,
+            '',
+            'Our team will process your order manually.'
+          ]);
+          setProcessingPayment(false);
+          return;
+        }
 
         if (result.data?.createOrder?.errors && result.data.createOrder.errors.length > 0) {
           console.error('❌ Backend validation errors:', result.data.createOrder.errors);
@@ -1442,6 +1486,7 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
       }
     } catch (err: any) {
       // Handle payment errors in UI only (don't log to console)
+      console.error('Payment error caught:', err);
 
       // Check if user cancelled the transaction
       if (err?.message === 'USER_CANCELLED_TRANSACTION' || (err as any)?.code === 'USER_CANCELLED') {
@@ -1453,6 +1498,28 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
           '✅ Your order has been cancelled. No payment was made.',
           '',
           'Click "Pay with USDT" again when you\'re ready to complete the purchase.'
+        ]);
+        setProcessingPayment(false);
+        return;
+      }
+
+      // Check for network errors (Load failed, fetch errors, etc.)
+      const errStr = String(err?.message || err || '').toLowerCase();
+      const isNetworkError = errStr.includes('load failed') ||
+        errStr.includes('network') ||
+        errStr.includes('fetch') ||
+        errStr.includes('failed to fetch') ||
+        errStr.includes('networkerror') ||
+        err?.networkError;
+
+      if (isNetworkError) {
+        setFormErrors([
+          '❌ Network Connection Error',
+          '',
+          'Unable to complete the payment due to a network issue.',
+          'Please check your internet connection and try again.',
+          '',
+          'If the problem persists, please contact support.'
         ]);
         setProcessingPayment(false);
         return;

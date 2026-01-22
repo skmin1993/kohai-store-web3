@@ -32,11 +32,12 @@ const WalletButton = () => {
   const [forceRender, setForceRender] = useState(0);
   const [isLoadingUserData, setIsLoadingUserData] = useState(false);
   const [showReferralModal, setShowReferralModal] = useState(false);
-  const [showVipStatus, setShowVipStatus] = useState(true);
+  const [showVipStatus, setShowVipStatus] = useState(false);
   const [showRewardsCategory, setShowRewardsCategory] = useState(false);
   const [showTokenCategory, setShowTokenCategory] = useState(true);
   const [showAccountCategory, setShowAccountCategory] = useState(false);
   const [isHoveringDropdown, setIsHoveringDropdown] = useState(false);
+  const [addressCopied, setAddressCopied] = useState(false);
 
   // Prevent hydration mismatch
   useEffect(() => {
@@ -551,7 +552,7 @@ const WalletButton = () => {
 
           {/* Dropdown content */}
           <div
-            className="absolute right-0 top-full mt-2 z-50 w-80 rounded-lg bg-gray-900 shadow-xl border border-white/10 overflow-hidden"
+            className="absolute right-0 top-full mt-2 z-50 w-80 max-h-[70vh] overflow-y-auto rounded-lg bg-gray-900 shadow-xl border border-white/10"
             onMouseEnter={() => setIsHoveringDropdown(true)}
             onMouseLeave={() => setIsHoveringDropdown(false)}
           >
@@ -578,11 +579,17 @@ const WalletButton = () => {
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(address!);
+                      setAddressCopied(true);
+                      setTimeout(() => setAddressCopied(false), 2000);
                     }}
-                    className="flex-shrink-0 rounded-lg bg-blue-500/30 hover:bg-blue-500/40 px-2.5 py-1.5 text-xs font-medium text-blue-200 transition"
+                    className={`flex-shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
+                      addressCopied
+                        ? 'bg-green-500/30 text-green-300'
+                        : 'bg-blue-500/30 hover:bg-blue-500/40 text-blue-200'
+                    }`}
                     title="Copy Address"
                   >
-                    📋
+                    {addressCopied ? '✓ Copied!' : '📋'}
                   </button>
                 </div>
 
