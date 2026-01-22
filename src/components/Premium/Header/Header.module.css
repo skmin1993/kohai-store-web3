@@ -13,3 +13,23 @@
   top: 30px;
   padding: 10px;
 }
+
+/* iPhone SE and small screens (375px and below) */
+@media (max-width: 375px) {
+  .logoIcon {
+    max-width: 60px;
+  }
+  .logoText {
+    max-width: 180px;
+  }
+}
+
+/* Small phones (between 376px and 480px) */
+@media (min-width: 376px) and (max-width: 480px) {
+  .logoIcon {
+    max-width: 80px;
+  }
+  .logoText {
+    max-width: 220px;
+  }
+}

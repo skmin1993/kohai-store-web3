@@ -1,3 +1,17 @@
 .logo {
   height: 45px;
 }
+
+/* iPhone SE and small screens (375px and below) */
+@media (max-width: 375px) {
+  .logo {
+    height: 32px;
+  }
+}
+
+/* Small phones (between 376px and 480px) */
+@media (min-width: 376px) and (max-width: 480px) {
+  .logo {
+    height: 38px;
+  }
+}
