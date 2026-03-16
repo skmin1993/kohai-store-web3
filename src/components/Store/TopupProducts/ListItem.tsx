@@ -1,12 +1,12 @@
 "use client";
 
-import { TopupProductFragment } from "graphql/generated/graphql";
+import { TopupProductFragment, useTopupProductLazyQuery } from "graphql/generated/graphql";
 import { useStore } from "@/contexts/StoreContext";
 import { isColorDark } from "@/lib/ColorUtils";
 import Link from "next/link";
 import styles from "./TopupProduct.module.css";
 import { useFavorites } from "@/hooks/useFavorites";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 
 const TopupProductListItem = (props: {
   item: TopupProductFragment;
@@ -21,6 +21,16 @@ const TopupProductListItem = (props: {
   const { title, publisher, avatarUrl, logoUrl, slug, id, category } = props.item;
   const isProductFavorite = isFavorite(id);
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
+  const [prefetchProduct] = useTopupProductLazyQuery();
+
+  // Prefetch product data on hover for faster page load
+  const handleMouseEnter = useCallback(() => {
+    // Prefetch with slug
+    prefetchProduct({
+      variables: { id: undefined, slug: slug },
+      fetchPolicy: "cache-first",
+    });
+  }, [prefetchProduct, slug]);
 
   const isButtonDark = !!store?.buttonColor
     ? isColorDark(String(store.buttonColor))

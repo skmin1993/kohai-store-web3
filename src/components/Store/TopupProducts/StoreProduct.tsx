@@ -18,17 +18,17 @@ const StoreProduct = (props: { id: string; slug?: string }) => {
   const isNumericId = /^\d+$/.test(props.id);
 
   // Query with either id or slug parameter
+  // Use cache-first for instant loading, then refresh in background
   const { data, loading, error, refetch } = useTopupProductQuery({
     variables: isNumericId
       ? { id: props.id, slug: undefined }
       : { id: undefined, slug: props.id },
-    fetchPolicy: "network-only", // Always fetch fresh prices from server
+    fetchPolicy: "cache-and-network", // Show cached data instantly, then update
+    nextFetchPolicy: "cache-first", // Subsequent requests use cache
     pollInterval: 60000, // Refresh prices every 60 seconds
   });
 
   const product = data?.topupProduct;
-
-  console.log("StoreProduct Debug:", { id: props.id, isNumericId, product, loading, error });
 
   // Track user activity to detect if page is idle
   const handleActivity = useCallback(() => {
@@ -39,8 +39,8 @@ const StoreProduct = (props: { id: string; slug?: string }) => {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Track mouse movement, clicks, keyboard, scroll, touch
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    // Track clicks, keyboard, scroll, touch (mousemove excluded — fires too frequently)
+    const events = ['mousedown', 'keypress', 'scroll', 'touchstart', 'click'];
 
     events.forEach(event => {
       window.addEventListener(event, handleActivity);

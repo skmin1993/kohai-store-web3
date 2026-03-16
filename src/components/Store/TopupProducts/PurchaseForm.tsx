@@ -1013,7 +1013,70 @@ const PurchaseForm = ({ productItem, userInput, onChangeProduct, onGameAccountFi
         return;
       }
 
-      // STEP 2.5: Check USDT balance before proceeding
+      // STEP 2.5: Verify game account with vendor BEFORE payment
+      if (userInputFields.length > 0 && productItem.topupProductId) {
+        const accountId = userData["User ID"] || userData["Player ID"] || userData["UID"] || userData["Account ID"];
+        const serverId = userData["insert server value"] || userData["Server"] || userData["Region"];
+
+        if (accountId) {
+          try {
+            const createResult = await createGameAccount({
+              variables: {
+                topupProductId: parseInt(productItem.topupProductId.toString()),
+                accountId: accountId,
+                serverId: serverId || undefined,
+                inGameName: undefined,
+                userData: userData,
+              },
+            });
+
+            const tempAccount = createResult.data?.createGameAccount?.gameAccount;
+
+            if (!tempAccount) {
+              const createErrors = createResult.data?.createGameAccount?.errors;
+              setFormErrors([
+                '❌ Game account verification failed',
+                createErrors?.join(', ') || 'Unable to verify your game account.',
+                'Please check your Player ID and Server, then try again.',
+              ]);
+              setProcessingPayment(false);
+              return;
+            }
+
+            const validateResult = await validateGameAccount({
+              variables: {
+                gameAccountId: parseInt(tempAccount.id),
+              },
+            });
+
+            const validated = validateResult.data?.validateGameAccountMutation;
+
+            if (!validated?.success || !validated?.gameAccount) {
+              setFormErrors([
+                '❌ Game account verification failed',
+                validated?.errors?.join(', ') || 'Your game account could not be verified.',
+                'Please double-check your Player ID and Server, then try again.',
+              ]);
+              setProcessingPayment(false);
+              return;
+            }
+
+            // Verification passed — store for later use and show IGN
+            setVerifiedIGN(validated.gameAccount.inGameName || null);
+            setTempAccountIdForVerify(tempAccount.id);
+          } catch (verifyErr: any) {
+            setFormErrors([
+              '❌ Game account verification failed',
+              'Could not connect to the verification service.',
+              'Please check your internet connection and try again.',
+            ]);
+            setProcessingPayment(false);
+            return;
+          }
+        }
+      }
+
+      // STEP 3.5: Check USDT balance before proceeding
       const paymentAmount = discountedPriceUsd < 0.01
         ? parseFloat(discountedPriceUsd.toFixed(6))
         : parseFloat(discountedPriceUsd.toFixed(2));
